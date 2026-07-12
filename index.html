@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoVista Bogor - WebGIS Analisis Perubahan Objek Permukaan Bumi Tahun 2024-2025 Menggunakan Sentinel-2, Google Earth Engine, Random Forest, dan WebGIS Interaktif.">
+    <meta name="keywords" content="WebGIS, Bogor, Sentinel-2, Random Forest, Google Earth Engine, Analisis Perubahan">
+    <meta name="author" content="Universitas Bakrie - Sistem Informasi">
+    <title>GeoVista Bogor | WebGIS Analisis Perubahan Objek Permukaan Bumi</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- Favicon -->
+    <link rel="icon" href="assets/img/logo_bogor.png" type="image/png">
+</head>
+<body>
+
+    <!-- ===================== NAVBAR ===================== -->
+    <nav id="navbar" class="navbar">
+        <div class="nav-container">
+            <a href="#home" class="nav-brand">
+                <img src="assets/img/logo_bogor.png" alt="Logo Kabupaten Bogor" class="nav-logo">
+                <span class="nav-title">GeoVista Bogor</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#peta-hasil" class="nav-link">Peta Hasil</a></li>
+                <li><a href="#data-proses" class="nav-link">Data &amp; Proses</a></li>
+                <li><a href="#evaluasi-model" class="nav-link">Evaluasi Model</a></li>
+                <li><a href="#insight-hasil" class="nav-link">Insight Hasil</a></li>
+
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ===================== HERO SECTION ===================== -->
+    <section id="home" class="hero-section">
+        <div class="hero-slider">
+            <div class="hero-slide active" style="background-image: url('assets/img/bogor1.jpg');"></div>
+            <div class="hero-slide" style="background-image: url('assets/img/bogor2.jpeg');"></div>
+            <div class="hero-slide" style="background-image: url('assets/img/bogor3.jpg');"></div>
+            <div class="hero-slide" style="background-image: url('assets/img/bogor4.jpg');"></div>
+        </div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content fade-in">
+            <h1 class="hero-title">GeoVista Bogor</h1>
+            <p class="hero-subtitle">Kabupaten Bogor merupakan salah satu wilayah di Provinsi Jawa Barat yang memiliki kekayaan sumber daya alam, kawasan hijau, serta perkembangan wilayah yang sangat pesat. Website ini menyajikan visualisasi informasi geospasial Kabupaten Bogor sebagai media untuk mendukung pemantauan dan analisis perubahan wilayah secara interaktif.</p>
+            
+            <div class="hero-buttons">
+                <a href="#peta-hasil" class="btn btn-primary"><i class="fas fa-map-marked-alt"></i> Lihat Peta</a>
+                <a href="#data-proses" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Lihat Analisis</a>
+            </div>
+
+
+            <div class="hero-scroll-indicator bounce-anim">
+                <div class="scroll-mouse"><div class="scroll-wheel"></div></div>
+                <span>Scroll ke bawah</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== SECTION 1: PETA HASIL ===================== -->
+    <section id="peta-hasil" class="section section-peta">
+        <div class="section-header fade-in">
+            <span class="section-tag"><i class="fas fa-map"></i> Peta Interaktif</span>
+            <h2 class="section-title">Peta Hasil Klasifikasi</h2>
+            <p class="section-desc">Visualisasi spasial hasil klasifikasi Random Forest pada citra Sentinel-2 untuk wilayah Kabupaten Bogor.</p>
+        </div>
+
+        <!-- ── Stat Cards Row ── -->
+        <div class="peta-stats-row fade-in">
+            <div class="peta-stat-card">
+                <div class="peta-stat-icon" style="background:linear-gradient(135deg,#1B5E20,#2E7D32);"><i class="fas fa-map"></i></div>
+                <div class="peta-stat-body">
+                    <div class="peta-stat-label">Luas Wilayah</div>
+                    <div class="peta-stat-value" id="val-luas"><i class="fas fa-spinner fa-spin fa-sm"></i></div>
+                    <div class="peta-stat-unit">Kab. Bogor</div>
+                </div>
+            </div>
+            <div class="peta-stat-card">
+                <div class="peta-stat-icon" style="background:linear-gradient(135deg,#2E7D32,#43A047);"><i class="fas fa-crosshairs"></i></div>
+                <div class="peta-stat-body">
+                    <div class="peta-stat-label">Target 2024</div>
+                    <div class="peta-stat-value" id="val-t2024"><i class="fas fa-spinner fa-spin fa-sm"></i></div>
+                    <div class="peta-stat-unit">Area Vegetasi</div>
+                </div>
+            </div>
+            <div class="peta-stat-card">
+                <div class="peta-stat-icon" style="background:linear-gradient(135deg,#0D47A1,#1565C0);"><i class="fas fa-crosshairs"></i></div>
+                <div class="peta-stat-body">
+                    <div class="peta-stat-label">Target 2025</div>
+                    <div class="peta-stat-value" id="val-t2025"><i class="fas fa-spinner fa-spin fa-sm"></i></div>
+                    <div class="peta-stat-unit">Area Vegetasi</div>
+                </div>
+            </div>
+            <div class="peta-stat-card">
+                <div class="peta-stat-icon" style="background:linear-gradient(135deg,#1B5E20,#43A047);"><i class="fas fa-arrow-up"></i></div>
+                <div class="peta-stat-body">
+                    <div class="peta-stat-label">Gain</div>
+                    <div class="peta-stat-value peta-stat-pending" id="val-gain">Menunggu Analisis</div>
+                    <div class="peta-stat-unit">Pertambahan Vegetasi</div>
+                </div>
+            </div>
+            <div class="peta-stat-card">
+                <div class="peta-stat-icon" style="background:linear-gradient(135deg,#B71C1C,#E53935);"><i class="fas fa-arrow-down"></i></div>
+                <div class="peta-stat-body">
+                    <div class="peta-stat-label">Loss</div>
+                    <div class="peta-stat-value peta-stat-pending" id="val-loss">Menunggu Analisis</div>
+                    <div class="peta-stat-unit">Pengurangan Vegetasi</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Dashboard: Left | Map | Right ── -->
+        <div class="peta-dashboard fade-in">
+
+            <!-- LEFT PANEL -->
+            <aside class="peta-panel">
+                <div class="panel-card">
+                    <div class="panel-card-header"><i class="fas fa-globe"></i> Basemap</div>
+                    <div class="panel-card-body">
+                        <label class="panel-radio"><input type="radio" name="basemap" value="osm" id="bm-osm" checked><span class="panel-radio-dot"></span> OpenStreetMap</label>
+                        <label class="panel-radio"><input type="radio" name="basemap" value="topo" id="bm-topo"><span class="panel-radio-dot"></span> Topographic</label>
+                        <label class="panel-radio"><input type="radio" name="basemap" value="satellite" id="bm-satellite"><span class="panel-radio-dot"></span> Satellite</label>
+                    </div>
+                </div>
+                <div class="panel-card">
+                    <div class="panel-card-header"><i class="fas fa-layer-group"></i> Layer Peta</div>
+                    <div class="panel-card-body">
+                        <label class="panel-check"><input type="checkbox" id="lyr-admin" checked><span class="panel-check-box"></span><span class="panel-dot" style="background:#FF9800;"></span> Batas Administrasi</label>
+                        <label class="panel-check"><input type="checkbox" id="lyr-2024" checked><span class="panel-check-box"></span><span class="panel-dot" style="background:#43A047;"></span> Target Tahun 2024</label>
+                        <label class="panel-check"><input type="checkbox" id="lyr-2025" checked><span class="panel-check-box"></span><span class="panel-dot" style="background:#2196F3;"></span> Target Tahun 2025</label>
+                        <label class="panel-check"><input type="checkbox" id="lyr-gain"><span class="panel-check-box"></span><span class="panel-dot" style="background:#00E676;"></span> Gain</label>
+                        <label class="panel-check"><input type="checkbox" id="lyr-loss"><span class="panel-check-box"></span><span class="panel-dot" style="background:#FF5252;"></span> Loss</label>
+                    </div>
+                </div>
+                <button class="btn-reset-view" id="btnResetView"><i class="fas fa-compress-arrows-alt"></i> Reset View</button>
+            </aside>
+
+            <!-- CENTER MAP -->
+            <div class="peta-map-wrap">
+                <div id="map" class="map-container"></div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <aside class="peta-panel">
+                <div class="panel-card">
+                    <div class="panel-card-header"><i class="fas fa-swatchbook"></i> Legenda</div>
+                    <div class="panel-card-body" id="legend-container">
+                        <div class="legend-row" id="legend-admin"><span class="legend-sym legend-sym-outline" style="border-color:#FF9800;"></span> Batas Administrasi</div>
+                        <div class="legend-row" id="legend-target2024"><span class="legend-sym" style="background:#43A047;"></span> Target Tahun 2024</div>
+                        <div class="legend-row" id="legend-target2025"><span class="legend-sym" style="background:#2196F3;"></span> Target Tahun 2025</div>
+                        <div class="legend-row" id="legend-gain"><span class="legend-sym" style="background:#00E676;"></span> Gain</div>
+                        <div class="legend-row" id="legend-loss"><span class="legend-sym" style="background:#FF5252;"></span> Loss</div>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </section>
+
+    <!-- ===================== SECTION 2: DATA & PROSES ===================== -->
+    <section id="data-proses" class="section section-data" style="background-image: url('assets/img/bogor3.jpg');">
+        <div class="section-data-overlay"></div>
+        <div class="section-inner">
+            <div class="section-header fade-in">
+                <span class="section-tag"><i class="fas fa-database"></i> Metodologi</span>
+                <h2 class="section-title">Data &amp; Proses</h2>
+                <p class="section-desc">Detail sumber data, preprocessing, dan tahapan analisis yang digunakan dalam proyek ini.</p>
+            </div>
+
+            <div class="cards-grid fade-in">
+                <!-- Card: Sumber Data -->
+                <div class="info-card">
+                    <div class="card-icon"><i class="fas fa-satellite-dish"></i></div>
+                    <h3>Sumber Data</h3>
+                    <ul class="card-list">
+                        <li><strong>Citra:</strong> Sentinel-2 Surface Reflectance Harmonized</li>
+                        <li><strong>Vektor:</strong> Batas Administrasi Kabupaten Bogor</li>
+                        <li><strong>Periode Data:</strong> 2024–2025</li>
+                    </ul>
+                </div>
+                <!-- Card: Preprocessing -->
+                <div class="info-card">
+                    <div class="card-icon"><i class="fas fa-cogs"></i></div>
+                    <h3>Preprocessing</h3>
+                    <ul class="card-list">
+                        <li><strong>Cloud Masking:</strong> QA60 Cloud Masking</li>
+                        <li><strong>Clip Boundary:</strong> Kabupaten Bogor</li>
+                        <li><strong>Composite:</strong> Median Composite</li>
+                        <li><strong>Resolusi:</strong> 10 meter</li>
+                    </ul>
+                </div>
+                <!-- Card: Feature Stack -->
+                <div class="info-card">
+                    <div class="card-icon"><i class="fas fa-layer-group"></i></div>
+                    <h3>Feature Stack</h3>
+                    <div class="feature-badges">
+                        <span class="badge">B2</span><span class="badge">B3</span><span class="badge">B4</span>
+                        <span class="badge">B8</span><span class="badge">B11</span><span class="badge">B12</span>
+                        <span class="badge badge-accent">NDVI</span><span class="badge badge-accent">NDWI</span><span class="badge badge-accent">NDBI</span>
+                    </div>
+                </div>
+                <!-- Card: Ground Truth (loaded dynamically from CSV) -->
+                <div class="info-card info-card-wide">
+                    <div class="card-icon"><i class="fas fa-map-pin"></i></div>
+                    <h3>Ground Truth</h3>
+                    <p style="font-size: 0.85rem; color: #FFFFFF; font-style: italic; margin-bottom: 16px; margin-top: -6px;">
+                        *Ground truth diperoleh dari proses pelabelan sebanyak 300 titik sampel untuk tahun 2024–2025.*
+                    </p>
+                    <div id="gt-summary-content">
+                        <p style="color:#aaa;text-align:center;padding:12px 0;"><i class="fas fa-spinner fa-spin"></i> Memuat data ground truth...</p>
+                    </div>
+                </div>
+                <!-- Card: Training & Testing -->
+                <div class="info-card info-card-medium">
+                    <div class="card-icon"><i class="fas fa-flask"></i></div>
+                    <h3>Training &amp; Testing</h3>
+                    <ul class="card-list">
+                        <li><strong>Algoritma:</strong> Random Forest</li>
+                        <li><strong>Split Data:</strong> 70:30</li>
+                        <li><strong>Random Seed:</strong> 42</li>
+                        <li><strong>Jumlah Trees:</strong> 100</li>
+                    </ul>
+                </div>
+                <!-- Card: Diagram Alur Proses -->
+                <div class="info-card info-card-wide fade-in" style="padding-bottom: 40px; text-align: center;">
+                    <h3 style="justify-content: center; margin-bottom: 24px; font-size: 1.25rem;"><i class="fas fa-project-diagram" style="color:var(--gold);"></i> Diagram Alur Proses</h3>
+                    <div class="flow-diagram-container">
+                        <!-- Sentinel-2 -->
+                        <div class="flow-box fade-in-cascade" style="animation-delay: 0.1s">
+                            <div class="flow-icon-wrap"><i class="fas fa-satellite"></i></div>
+                            <div class="flow-text">Sentinel-2</div>
+                        </div>
+                        <i class="fas fa-arrow-right flow-arrow fade-in-cascade" style="animation-delay: 0.2s"></i>
+
+                        <!-- Preprocessing -->
+                        <div class="flow-box fade-in-cascade" style="animation-delay: 0.3s">
+                            <div class="flow-icon-wrap"><i class="fas fa-cogs"></i></div>
+                            <div class="flow-text">Preprocessing</div>
+                        </div>
+                        <i class="fas fa-arrow-right flow-arrow fade-in-cascade" style="animation-delay: 0.4s"></i>
+
+                        <!-- Ground Truth -->
+                        <div class="flow-box fade-in-cascade" style="animation-delay: 0.5s">
+                            <div class="flow-icon-wrap"><i class="fas fa-map-pin"></i></div>
+                            <div class="flow-text">Ground Truth</div>
+                        </div>
+                        <i class="fas fa-arrow-right flow-arrow fade-in-cascade" style="animation-delay: 0.6s"></i>
+
+                        <!-- Random Forest -->
+                        <div class="flow-box fade-in-cascade" style="animation-delay: 0.7s">
+                            <div class="flow-icon-wrap"><i class="fas fa-tree"></i></div>
+                            <div class="flow-text">Random Forest</div>
+                        </div>
+                        <i class="fas fa-arrow-right flow-arrow fade-in-cascade" style="animation-delay: 0.8s"></i>
+
+                        <!-- Evaluasi -->
+                        <div class="flow-box fade-in-cascade" style="animation-delay: 0.9s">
+                            <div class="flow-icon-wrap"><i class="fas fa-check-circle"></i></div>
+                            <div class="flow-text">Evaluasi</div>
+                        </div>
+                        <i class="fas fa-arrow-right flow-arrow fade-in-cascade" style="animation-delay: 1.0s"></i>
+
+                        <!-- Klasifikasi -->
+                        <div class="flow-box fade-in-cascade" style="animation-delay: 1.1s">
+                            <div class="flow-icon-wrap"><i class="fas fa-th-large"></i></div>
+                            <div class="flow-text">Klasifikasi</div>
+                        </div>
+                        <i class="fas fa-arrow-right flow-arrow fade-in-cascade" style="animation-delay: 1.2s"></i>
+
+                        <!-- Analisis Perubahan -->
+                        <div class="flow-box box-highlight fade-in-cascade" style="animation-delay: 1.3s">
+                            <div class="flow-icon-wrap"><i class="fas fa-exchange-alt"></i></div>
+                            <div class="flow-text">Analisis Perubahan</div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </section>
+
+    <!-- ===================== SECTION 3: EVALUASI MODEL ===================== -->
+    <section id="evaluasi-model" class="ev-section">
+        <div class="ev-container">
+            <!-- HEADER -->
+            <div class="ev-header fade-in">
+                <span class="ev-badge-tag"><i class="fas fa-chart-bar"></i> Performa Model</span>
+                <h2 class="ev-title">Evaluasi Model</h2>
+                <p class="ev-subtitle">Halaman ini menyajikan hasil evaluasi performa model Random Forest berdasarkan data Ground Truth untuk menilai tingkat akurasi klasifikasi perubahan vegetasi Kabupaten Bogor periode 2024–2025.</p>
+            </div>
+
+            <!-- S1: INFORMASI DATASET -->
+            <div class="ev-block fade-in">
+                <div class="ev-card ev-dataset-card">
+                    <div class="ev-card-top" style="margin-bottom: 16px;">
+                        <div class="ev-card-title-row">
+                            <div class="ev-icon-wrap ev-green-icon"><i class="fas fa-database"></i></div>
+                            <div>
+                                <h3 class="ev-ch">Informasi Dataset Pelatihan &amp; Pengujian</h3>
+                                <p class="ev-csub">Parameter konfigurasi model Random Forest</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ev-ds-cols">
+                        <div class="ev-ds-col">
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-map-marker-alt"></i> Total Ground Truth</span>
+                                <span class="ev-ds-val">300 titik</span>
+                            </div>
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-chart-pie"></i> Split Data</span>
+                                <span class="ev-ds-val">70 : 30</span>
+                            </div>
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-layer-group"></i> Training Data</span>
+                                <span class="ev-ds-val">210 titik</span>
+                            </div>
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-vial"></i> Testing Data</span>
+                                <span class="ev-ds-val">90 titik</span>
+                            </div>
+                        </div>
+                        <div class="ev-ds-divider"></div>
+                        <div class="ev-ds-col">
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-cog"></i> Random Seed</span>
+                                <span class="ev-ds-val">42</span>
+                            </div>
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-tree"></i> Algoritma</span>
+                                <span class="ev-ds-val">Random Forest</span>
+                            </div>
+                            <div class="ev-ds-item">
+                                <span class="ev-ds-key"><i class="fas fa-sitemap"></i> Jumlah Trees</span>
+                                <span class="ev-ds-val">100 pohon</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S2: METRIC CARDS -->
+            <div class="ev-block fade-in">
+                <div class="ev-aprf-row">
+                    <div class="ev-card ev-metric">
+                        <div class="ev-metric-top">
+                            <span class="ev-metric-nm">Accuracy</span>
+                            <div class="ev-icon-wrap ev-green-icon ev-metric-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                            </div>
+                        </div>
+                        <div class="ev-metric-pct ev-c-green counter" data-target="96.67">96.67%</div>
+                        <div class="ev-metric-hint">Proporsi prediksi benar terhadap seluruh data uji.</div>
+                        <div class="ev-progress"><div class="ev-prog-fill ev-prog-green" style="width:96.67%"></div></div>
+                    </div>
+                    
+                    <div class="ev-card ev-metric">
+                        <div class="ev-metric-top">
+                            <span class="ev-metric-nm">Precision</span>
+                            <div class="ev-icon-wrap ev-green-icon ev-metric-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                            </div>
+                        </div>
+                        <div class="ev-metric-pct ev-c-green counter" data-target="97.78">97.78%</div>
+                        <div class="ev-metric-hint">Ketepatan model mengidentifikasi area vegetasi secara tepat sasaran.</div>
+                        <div class="ev-progress"><div class="ev-prog-fill ev-prog-green" style="width:97.78%"></div></div>
+                    </div>
+
+                    <div class="ev-card ev-metric">
+                        <div class="ev-metric-top">
+                            <span class="ev-metric-nm">Recall</span>
+                            <div class="ev-icon-wrap ev-green-icon ev-metric-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            </div>
+                        </div>
+                        <div class="ev-metric-pct ev-c-green counter" data-target="95.65">95.65%</div>
+                        <div class="ev-metric-hint">Kemampuan model menemukan seluruh area vegetasi yang ada.</div>
+                        <div class="ev-progress"><div class="ev-prog-fill ev-prog-green" style="width:95.65%"></div></div>
+                    </div>
+
+                    <div class="ev-card ev-metric">
+                        <div class="ev-metric-top">
+                            <span class="ev-metric-nm">F1 Score</span>
+                            <div class="ev-icon-wrap ev-green-icon ev-metric-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scale"><path d="m16 16 3-8 3 8c-.1.3-2.4 1-3 1s-2.9-.7-3-1Z"/><path d="m2 16 3-8 3 8c-.1.3-2.4 1-3 1s-2.9-.7-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>
+                            </div>
+                        </div>
+                        <div class="ev-metric-pct ev-c-green counter" data-target="96.70">96.70%</div>
+                        <div class="ev-metric-hint">Rata-rata harmonis antara nilai Precision dan Recall model.</div>
+                        <div class="ev-progress"><div class="ev-prog-fill ev-prog-green" style="width:96.70%"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S3: CM + INTERPRETASI -->
+            <div class="ev-block fade-in">
+                <div class="ev-cm-row">
+                    <div class="ev-card ev-cm-card">
+                        <!-- Header -->
+                        <div class="ev-card-title-row" style="margin-bottom: 24px;">
+                            <div class="ev-icon-wrap ev-green-icon" style="width: 48px; height: 48px; border-radius: 12px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-grid-2x2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="ev-ch" style="font-size: 1.25rem;">Confusion Matrix</h3>
+                                <p class="ev-csub" style="font-size: 0.9rem;">Perbandingan antara hasil prediksi Random Forest dengan data Ground Truth untuk mengevaluasi performa klasifikasi vegetasi.</p>
+                            </div>
+                        </div>
+
+                        <!-- Centered Matrix Area with Legend side-by-side -->
+                        <div class="ev-matrix-container">
+                            <div class="ev-matrix-layout-wrapper">
+                                <!-- Y Axis Label (Actual Label) -->
+                                <div class="ev-matrix-y-axis-label">Actual Label</div>
+
+                                <!-- Grid & Headers Wrapper -->
+                                <div class="ev-matrix-grid-wrapper">
+                                    <!-- Column Headers -->
+                                    <div class="ev-matrix-col-headers-block">
+                                        <div class="ev-matrix-x-axis-label">Predicted Label</div>
+                                        <div class="ev-matrix-col-labels-row">
+                                            <div class="ev-matrix-col-lbl">Non-Veg</div>
+                                            <div class="ev-matrix-col-lbl">Veg</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row Labels + Cell Grid -->
+                                    <div class="ev-matrix-grid-content-row">
+                                        <div class="ev-matrix-row-labels-col">
+                                            <div class="ev-matrix-row-lbl">Non-Veg</div>
+                                            <div class="ev-matrix-row-lbl">Veg</div>
+                                        </div>
+
+                                        <!-- The 2x2 Heatmap Matrix Grid -->
+                                        <div class="ev-matrix-heatmap-grid">
+                                            <!-- Row 1, Col 1: TN (43) -->
+                                            <div class="ev-matrix-cell cell-tn" title="Actual: Non-Veg, Predicted: Non-Veg (43)">
+                                                <span class="ev-matrix-cell-val">43</span>
+                                                <span class="ev-matrix-cell-badge badge-tn">TN</span>
+                                            </div>
+                                            <!-- Row 1, Col 2: FP (1) -->
+                                            <div class="ev-matrix-cell cell-fp" title="Actual: Non-Veg, Predicted: Veg (1)">
+                                                <span class="ev-matrix-cell-val">1</span>
+                                                <span class="ev-matrix-cell-badge badge-fp">FP</span>
+                                            </div>
+                                            <!-- Row 2, Col 1: FN (2) -->
+                                            <div class="ev-matrix-cell cell-fn" title="Actual: Veg, Predicted: Non-Veg (2)">
+                                                <span class="ev-matrix-cell-val">2</span>
+                                                <span class="ev-matrix-cell-badge badge-fn">FN</span>
+                                            </div>
+                                            <!-- Row 2, Col 2: TP (44) -->
+                                            <div class="ev-matrix-cell cell-tp" title="Actual: Veg, Predicted: Veg (44)">
+                                                <span class="ev-matrix-cell-val">44</span>
+                                                <span class="ev-matrix-cell-badge badge-tp">TP</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Side Legend -->
+                                <div class="ev-matrix-legend-side">
+                                    <div class="ev-legend-title">Intensity</div>
+                                    <div class="ev-legend-body">
+                                        <div class="ev-legend-gradient-bar"></div>
+                                        <div class="ev-legend-gradient-labels">
+                                            <span>44</span>
+                                            <span>30</span>
+                                            <span>15</span>
+                                            <span>0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Caption -->
+                        <div class="ev-matrix-caption-bottom">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                            <span>Evaluasi dilakukan menggunakan 90 data testing hasil pembagian dataset 70:30.</span>
+                        </div>
+                    </div>
+
+                    <div class="ev-card ev-interp-card">
+                        <div class="ev-card-title-row" style="margin-bottom: 20px;">
+                            <div class="ev-icon-wrap ev-green-icon"><i class="fas fa-search"></i></div>
+                            <div>
+                                <h3 class="ev-ch">Interpretasi Hasil Klasifikasi</h3>
+                                <p class="ev-csub">Analisis komponen matriks terhadap kinerja model.</p>
+                            </div>
+                        </div>
+                        <div class="ev-interp-grid">
+                            <div class="ev-interp-item interp-tp">
+                                <div class="ev-interp-header">
+                                    <span class="ev-interp-title">True Positive (TP)</span>
+                                    <span class="ev-interp-val">44</span>
+                                </div>
+                                <p class="ev-interp-desc">44 area vegetasi berhasil diprediksi dengan benar.</p>
+                            </div>
+                            <div class="ev-interp-item interp-tn">
+                                <div class="ev-interp-header">
+                                    <span class="ev-interp-title">True Negative (TN)</span>
+                                    <span class="ev-interp-val">43</span>
+                                </div>
+                                <p class="ev-interp-desc">43 area non-vegetasi berhasil diprediksi dengan benar.</p>
+                            </div>
+                            <div class="ev-interp-item interp-fp">
+                                <div class="ev-interp-header">
+                                    <span class="ev-interp-title">False Positive (FP)</span>
+                                    <span class="ev-interp-val">1</span>
+                                </div>
+                                <p class="ev-interp-desc">1 area non-vegetasi salah diprediksi sebagai vegetasi.</p>
+                            </div>
+                            <div class="ev-interp-item interp-fn">
+                                <div class="ev-interp-header">
+                                    <span class="ev-interp-title">False Negative (FN)</span>
+                                    <span class="ev-interp-val">2</span>
+                                </div>
+                                <p class="ev-interp-desc">2 area vegetasi tidak berhasil dikenali model.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S4: KETERBATASAN + KESIMPULAN -->
+            <div class="ev-block fade-in">
+                <div class="ev-bottom-row">
+                    <!-- Keterbatasan Model Card -->
+                    <div class="ev-card ev-limits-card">
+                        <div class="ev-card-title-row" style="margin-bottom: 24px;">
+                            <div class="ev-icon-wrap ev-warn-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="ev-ch">Keterbatasan Model</h3>
+                                <p class="ev-csub">Aspek yang perlu diperhatikan dalam interpretasi hasil</p>
+                            </div>
+                        </div>
+                        <ul class="ev-limits-list">
+                            <li>Kualitas Ground Truth mempengaruhi hasil klasifikasi.</li>
+                            <li>Resolusi Sentinel-2 (10 m) membatasi identifikasi objek kecil.</li>
+                            <li>Perubahan musim mempengaruhi nilai spektral.</li>
+                            <li>Model hanya membedakan Vegetasi dan Non-Vegetasi.</li>
+                        </ul>
+                        <div class="ev-limits-note">
+                            <div class="ev-note-title">Catatan</div>
+                            <p class="ev-note-text">Hasil evaluasi dapat meningkat apabila jumlah Ground Truth lebih banyak dan lebih beragam.</p>
+                        </div>
+                    </div>
+
+                    <!-- Kesimpulan Card -->
+                    <div class="ev-card ev-concl-card">
+                        <div class="ev-card-title-row" style="margin-bottom: 24px; flex-wrap: wrap; gap: 12px; align-items: center;">
+                            <div class="ev-icon-wrap ev-green-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-award"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="ev-ch" style="color: #1B5E20;">Kesimpulan Evaluasi</h3>
+                                <p class="ev-csub">Rangkuman hasil validasi model Random Forest</p>
+                            </div>
+                            <span class="ev-pill-green" style="margin-left: auto;">High Reliability</span>
+                        </div>
+                        <div class="ev-summary-metrics-row">
+                            <div class="ev-summary-metric">
+                                <span class="ev-sum-lbl">Accuracy</span>
+                                <span class="ev-sum-val">96.67%</span>
+                            </div>
+                            <div class="ev-summary-metric">
+                                <span class="ev-sum-lbl">Precision</span>
+                                <span class="ev-sum-val">97.78%</span>
+                            </div>
+                            <div class="ev-summary-metric">
+                                <span class="ev-sum-lbl">Recall</span>
+                                <span class="ev-sum-val">95.65%</span>
+                            </div>
+                            <div class="ev-summary-metric">
+                                <span class="ev-sum-lbl">F1 Score</span>
+                                <span class="ev-sum-val">96.70%</span>
+                            </div>
+                        </div>
+                        <p class="ev-concl-paragraph">
+                            Berdasarkan hasil evaluasi menggunakan 90 data testing, model Random Forest menunjukkan performa klasifikasi yang sangat baik dengan tingkat kesalahan sebesar 3,33%. Nilai Accuracy, Precision, Recall, dan F1 Score berada di atas 95%, sehingga model dinilai layak digunakan untuk analisis perubahan vegetasi Kabupaten Bogor periode 2024–2025.
+                        </p>
+                        <div class="ev-status-footer">
+                            <span class="ev-layak-badge-solid">✔ Model Layak Digunakan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== SECTION 4: INSIGHT HASIL ===================== -->
+    <section id="insight-hasil" class="section section-insight">
+        <div class="insight-bg" style="background-image: url('assets/img/bogor2.jpeg');"></div>
+        <div class="insight-overlay"></div>
+        <div class="section-inner">
+            <div class="section-header fade-in">
+                <span class="section-tag light"><i class="fas fa-lightbulb"></i> Temuan</span>
+                <h2 class="section-title light">Insight Hasil</h2>
+                <p class="section-desc light">Visualisasi hasil analisis perubahan tutupan vegetasi Kabupaten Bogor periode 2024–2025.</p>
+            </div>
+
+            <div class="stats-grid fade-in">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-map"></i></div>
+                    <div class="stat-value" id="stat-luas-2024">&mdash;</div>
+                    <div class="stat-label">Luas Target 2024</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-map-marked"></i></div>
+                    <div class="stat-value" id="stat-luas-2025">&mdash;</div>
+                    <div class="stat-label">Luas Target 2025</div>
+                </div>
+                <div class="stat-card gain">
+                    <div class="stat-icon"><i class="fas fa-arrow-up"></i></div>
+                    <div class="stat-value" id="stat-gain">&mdash;</div>
+                    <div class="stat-label">Gain Area</div>
+                </div>
+                <div class="stat-card loss">
+                    <div class="stat-icon"><i class="fas fa-arrow-down"></i></div>
+                    <div class="stat-value" id="stat-loss">&mdash;</div>
+                    <div class="stat-label">Loss Area</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="stat-value" id="stat-net-change">&mdash;</div>
+                    <div class="stat-label">Net Change</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="stat-value" id="stat-pct-change">&mdash;</div>
+                    <div class="stat-label">Persentase Perubahan</div>
+                </div>
+            </div>
+
+            <div class="insight-cards-grid fade-in" style="margin-bottom: 40px;">
+                <div class="insight-card" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+                    <h3 style="margin-bottom: 8px;">Perbandingan Luas Vegetasi Tahun 2024 dan 2025</h3>
+                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; margin-bottom: 24px; text-align: center;">Visualisasi perbandingan luas vegetasi hasil klasifikasi pada tahun 2024 dan 2025.</p>
+                    <div style="width: 100%; max-width: 800px; height: 300px;">
+                        <canvas id="insightChart"></canvas>
+                    </div>
+                </div>
+                <div class="insight-card" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+                    <h3 style="margin-bottom: 8px;">Komposisi Perubahan Vegetasi</h3>
+                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; margin-bottom: 24px; text-align: center;">Persentase area Gain, Loss, dan Stable terhadap keseluruhan area hasil klasifikasi.</p>
+                    <div style="width: 100%; max-width: 600px; height: 300px;">
+                        <canvas id="compositionChart"></canvas>
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-card-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <h3>Lokasi Perubahan Terbesar</h3>
+                    <p>Analisis overlay spasial terhadap layer <strong>Gain Vegetasi</strong> dan <strong>Loss Vegetasi</strong> menunjukkan bahwa perubahan vegetasi membentuk beberapa klaster perubahan di wilayah Kabupaten Bogor. Area perubahan terbesar diidentifikasi berdasarkan hasil klasifikasi Random Forest dan dapat dieksplorasi lebih lanjut melalui peta interaktif.</p>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-card-icon"><i class="fas fa-braille"></i></div>
+                    <h3>Pola Persebaran</h3>
+                    <p>Hasil analisis menunjukkan bahwa perubahan vegetasi tidak tersebar secara merata di seluruh wilayah Kabupaten Bogor. Berdasarkan data Gain dan Loss Vegetasi, area Gain lebih dominan dibandingkan area Loss sehingga menunjukkan kecenderungan peningkatan tutupan vegetasi selama periode 2024–2025.</p>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-card-icon"><i class="fas fa-question-circle"></i></div>
+                    <h3>Kemungkinan Penyebab</h3>
+                    <p>Perubahan vegetasi kemungkinan dipengaruhi oleh kombinasi faktor penggunaan lahan, aktivitas pembangunan, rehabilitasi kawasan, kondisi musim, serta dinamika vegetasi alami. Interpretasi ini bersifat indikatif berdasarkan analisis spasial dan memerlukan verifikasi lapangan untuk memastikan penyebab utamanya.</p>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-card-icon"><i class="fas fa-seedling"></i></div>
+                    <h3>Potensi Pemanfaatan Hasil</h3>
+                    <p>Hasil analisis dapat dimanfaatkan sebagai informasi pendukung dalam pemantauan perubahan tutupan vegetasi, evaluasi kondisi lingkungan, perencanaan tata ruang, konservasi kawasan, serta pengambilan keputusan berbasis data spasial di Kabupaten Bogor.</p>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-card-icon"><i class="fas fa-clipboard-check"></i></div>
+                    <h3>Rekomendasi</h3>
+                    <p>Disarankan melakukan pembaruan data citra secara berkala, menambah jumlah titik Ground Truth, serta melakukan validasi lapangan agar hasil klasifikasi semakin akurat. Pengembangan selanjutnya dapat menggunakan klasifikasi multi-kelas sehingga informasi perubahan tutupan lahan menjadi lebih rinci.</p>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-card-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <h3>Keterbatasan Penelitian</h3>
+                    <p>Hasil analisis dipengaruhi oleh kualitas dan representativitas Ground Truth, resolusi citra Sentinel-2 sebesar 10 meter, serta penggunaan klasifikasi biner (Vegetasi dan Non-Vegetasi). Oleh karena itu, hasil ini menggambarkan pola perubahan vegetasi secara umum dan bukan penyebab perubahan secara langsung.</p>
+                </div>
+                <!-- Ringkasan Temuan Card -->
+                <div class="insight-card" style="grid-column: 1 / -1;">
+                    <div class="insight-card-icon"><i class="fas fa-file-alt"></i></div>
+                    <h3>Ringkasan Temuan</h3>
+                    <p style="font-style: normal; color: rgba(255,255,255,0.85); line-height: 1.8;">Berdasarkan hasil analisis perubahan vegetasi Kabupaten Bogor periode 2024–2025 menggunakan algoritma Random Forest, luas vegetasi meningkat dari <strong id="rt-luas-2024" style="font-weight: 700;">189.072,65 Ha</strong> menjadi <strong id="rt-luas-2025" style="font-weight: 700;">218.239,64 Ha</strong>. Analisis menunjukkan <strong>Gain Area sebesar <span id="rt-gain">38.239,44 Ha</span></strong>, <strong>Loss Area sebesar <span id="rt-loss">9.072,45 Ha</span></strong>, sehingga menghasilkan <strong>Net Change sebesar <span id="rt-net-change">29.166,99 Ha</span></strong> atau <strong id="rt-pct-change" style="font-weight: 700;">15,43%</strong> dibandingkan kondisi tahun sebelumnya. Hasil ini menunjukkan adanya peningkatan tutupan vegetasi pada periode pengamatan.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer id="footer" class="footer">
+        <div class="footer-container footer-centered">
+            <div class="footer-brand footer-brand-vertical">
+                <img src="assets/img/logo_bogor.png" alt="Logo Kabupaten Bogor" class="footer-logo">
+                <div class="footer-info">
+                    <h3 class="footer-main-title">GeoVista Bogor</h3>
+                    <p>Universitas Bakrie</p>
+                    <p>Program Studi Sistem Informasi</p>
+                    <p>Mata Kuliah: Kapita Selekta Sistem Informasi &amp; Maha Data</p>
+                    <p>Kelompok 14</p>
+                    <p>Tahun Akademik 2025/2026</p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 GeoVista Bogor &mdash; Universitas Bakrie. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom JS -->
+    <script src="assets/js/main.js"></script>
+</body>
+</html>

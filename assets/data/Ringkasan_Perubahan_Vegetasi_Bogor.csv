@@ -1,0 +1,9 @@
+system:index,kategori,nilai,.geo
+0,Luas Vegetasi 2024 (Ha),189072.65374494685,"{""type"":""MultiPoint"",""coordinates"":[]}"
+1,Luas Vegetasi 2025 (Ha),218239.6411220121,"{""type"":""MultiPoint"",""coordinates"":[]}"
+2,Gain (Ha),38239.43751281637,"{""type"":""MultiPoint"",""coordinates"":[]}"
+3,Loss (Ha),9072.45013576078,"{""type"":""MultiPoint"",""coordinates"":[]}"
+4,Net Change (Ha),29166.987377065263,"{""type"":""MultiPoint"",""coordinates"":[]}"
+5,Persentase Net Change (%),15.4263383939227,"{""type"":""MultiPoint"",""coordinates"":[]}"
+6,Persentase Gain (%),20.224732004026443,"{""type"":""MultiPoint"",""coordinates"":[]}"
+7,Persentase Loss (%),4.798393610108861,"{""type"":""MultiPoint"",""coordinates"":[]}"
