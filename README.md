@@ -1,6 +1,6 @@
 # GeoVista Bogor
 
-## WebGIS Analisis Perubahan Tutupan Vegetasi Kabupaten Bogor Menggunakan Metode Random Forest pada Citra Sentinel-2 Tahun 2024–2025
+## WebGIS Analisis Perubahan Vegetasi Kabupaten Bogor Menggunakan Metode Random Forest pada Citra Sentinel-2 Tahun 2024–2025
 
 ---
 
