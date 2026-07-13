@@ -1179,6 +1179,10 @@ img { max-width: 100%; height: auto; }
   .peta-panel:first-of-type { grid-row: 2; grid-column: 1; }
   .peta-panel:last-of-type { grid-row: 2; grid-column: 2; }
   .map-container { height: 480px; }
+  
+  /* Background fix for mobile browsers */
+  .section-data { background-attachment: scroll !important; }
+  .insight-bg { background-attachment: scroll !important; }
 }
 
 @media (max-width: 768px) {
@@ -1202,6 +1206,10 @@ img { max-width: 100%; height: auto; }
   .nav-btn { justify-content: center; width: 100%; }
   .nav-btn-outline { color: var(--green) !important; border-color: var(--green) !important; }
   .nav-btn-primary { color: var(--gray-800) !important; }
+
+  /* Hero Mobile Padding and Title Fix */
+  .hero-content { padding-top: 90px !important; }
+  .hero-title { font-size: 2.2rem !important; }
 
   .map-container { height: 380px; }
   .map-legend { position: relative; bottom: auto; right: auto; margin-top: 16px; }

@@ -754,7 +754,7 @@ function initMap() {
         return state.promise;
     }
 
-    // Preload Target 2024 and 2025 in background
+    // Preload Target 2024 and 2025 in background (disabled by default to prevent mobile crashes)
     function schedulePreload(key) {
         if (window.requestIdleCallback) {
             window.requestIdleCallback(() => loadLayerCache(key));
@@ -762,8 +762,6 @@ function initMap() {
             setTimeout(() => loadLayerCache(key), 1000);
         }
     }
-    schedulePreload('target2024');
-    schedulePreload('target2025');
 
     // ===== CUSTOM PANEL: BASEMAP RADIOS =====
     const basemapTiles = { osm: osmStandard, topo: osmTopo, satellite: esriSatellite };
