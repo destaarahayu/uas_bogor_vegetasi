@@ -139,6 +139,13 @@ function initMap() {
         preferCanvas: true // Use Canvas to fix complex polygon rendering bugs
     });
 
+    // Invalidate size on window resize for proper mobile/tablet responsiveness
+    window.addEventListener('resize', () => {
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
+    });
+
     // Create custom panes for strict layering
     map.createPane('paneAdmin');
     map.getPane('paneAdmin').style.zIndex = '401';
@@ -412,22 +419,22 @@ function initMap() {
 
         if (type === 'admin' || type === 'batasAdmin') {
             detailsHtml = `
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Kabupaten</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">Bogor</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Kecamatan</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${kecamatan}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Luas Wilayah</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${luasFormatted}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Persentase terhadap Kabupaten</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${pctFormatted}</span>
@@ -437,14 +444,14 @@ function initMap() {
             let statusPerubahanHtml = '';
             if (type === 'gain') {
                 statusPerubahanHtml = `
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Status Perubahan</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #00E676;">Pertambahan Vegetasi</span>
                 </div>`;
             } else if (type === 'loss') {
                 statusPerubahanHtml = `
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Status Perubahan</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #FF5252;">Pengurangan Vegetasi</span>
@@ -452,38 +459,38 @@ function initMap() {
             }
 
             detailsHtml = `
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Kabupaten</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">Bogor</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Kecamatan</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${kecamatan}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Objek Target</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">Vegetasi</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Kategori Layer</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${kategoriLayer}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Periode</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${periode}</span>
                 </div>
                 ${statusPerubahanHtml}
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Luas Area (Ha)</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${luasFormatted}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
                     <span style="font-weight: 500; color: #777;">Persentase terhadap luas wilayah (%)</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${pctFormatted}</span>
@@ -492,7 +499,7 @@ function initMap() {
         }
 
         return `
-            <div style="font-family: 'Poppins', sans-serif; font-size: 11px; color: #333; line-height: 1.45; padding: 4px; min-width: 310px; max-width: 350px;">
+            <div style="font-family: 'Poppins', sans-serif; font-size: 11px; color: #333; line-height: 1.45; padding: 4px; min-width: 240px; max-width: 320px;">
                 <div style="font-weight: 800; font-size: 13px; margin-bottom: 12px; color: ${accentColor}; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
                     ${title}
                 </div>

@@ -531,7 +531,7 @@ img { max-width: 100%; height: auto; }
 .ev-ds-divider { width: 1px; background: #E5E7EB; margin: 0 24px; }
 
 /* KPI */
-.ev-kpi-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 24px; }
+.ev-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
 .ev-kpi { text-align: center; padding: 28px 20px; }
 .ev-kpi-num { font-size: 2rem; font-weight: 700; color: #1F2937; margin: 12px 0 6px; line-height: 1; }
 .ev-kpi-name { font-size: 0.88rem; font-weight: 600; color: #1F2937; margin-bottom: 4px; }
@@ -545,7 +545,7 @@ img { max-width: 100%; height: auto; }
 .ev-c-purple{ color: #7C3AED !important; }
 
 /* APRF Metrics */
-.ev-aprf-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
+.ev-aprf-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
 .ev-metric { padding: 28px; display: flex; flex-direction: column; }
 .ev-metric-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .ev-metric-pct { font-size: 2.25rem; font-weight: 700; line-height: 1; margin-bottom: 6px; }
@@ -1172,7 +1172,9 @@ img { max-width: 100%; height: auto; }
   /* Dashboard: map full-width top, then panels 2-col below */
   .peta-stats-row { grid-template-columns: repeat(3, 1fr); }
   .peta-dashboard { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
-  .peta-map-wrap { grid-column: 1 / -1; }
+  .peta-map-wrap { grid-row: 1; grid-column: 1 / -1; }
+  .peta-panel:first-of-type { grid-row: 2; grid-column: 1; }
+  .peta-panel:last-of-type { grid-row: 2; grid-column: 2; }
   .map-container { height: 480px; }
 }
 
@@ -1186,22 +1188,38 @@ img { max-width: 100%; height: auto; }
   .nav-menu.active { right: 0; }
   .nav-menu .nav-link { color: var(--gray-800); padding: 12px 16px; border-radius: 8px; width: 100%; }
   .nav-menu .nav-link:hover, .nav-menu .nav-link.active { background: rgba(46,125,50,.08); color: var(--green); }
-  /* Dashboard mobile: all panels stack vertically */
+  /* Dashboard mobile: map on top, then panels stack vertically */
   .peta-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .peta-dashboard { grid-template-columns: 1fr; }
+  .peta-dashboard { display: flex; flex-direction: column; }
+  .peta-map-wrap { order: 1; }
+  .peta-panel:first-of-type { order: 2; }
+  .peta-panel:last-of-type { order: 3; }
   .map-container { height: 380px; }
   .nav-btn-group { flex-direction: column; margin-left: 0; margin-top: 12px; width: 100%; }
   .nav-btn { justify-content: center; width: 100%; }
   .nav-btn-outline { color: var(--green) !important; border-color: var(--green) !important; }
   .nav-btn-primary { color: var(--gray-800) !important; }
 
-  .map-container { height: 400px; }
+  .map-container { height: 380px; }
   .map-legend { position: relative; bottom: auto; right: auto; margin-top: 16px; }
   .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .eval-details-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .insight-cards-grid { grid-template-columns: 1fr; }
   .footer-container { grid-template-columns: 1fr; }
+
+  /* Touch target sizes for Leaflet controls on tablet/mobile */
+  .leaflet-bar a, 
+  .leaflet-bar a:hover, 
+  .leaflet-fullscreen-button {
+    width: 42px !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    font-size: 1.1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2137,6 +2155,12 @@ body.map-fullscreen-active {
         gap: 14px;
     }
 }
+@media (max-width: 992px) {
+    .ev-cm-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 600px) {
     .mini-kpi-grid {
         grid-template-columns: 1fr;
@@ -2144,6 +2168,57 @@ body.map-fullscreen-active {
     }
     .top-change-row {
         grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .ev-container {
+        padding: 0 16px;
+    }
+    .peta-stats-row {
+        grid-template-columns: 1fr !important;
+    }
+    .ev-metric-pct {
+        font-size: 1.8rem !important;
+    }
+    .ev-kpi-num {
+        font-size: 1.7rem !important;
+    }
+    /* Confusion Matrix Mobile Scaling */
+    .ev-matrix-legend-side {
+        display: none !important;
+    }
+    .ev-matrix-col-labels-row {
+        margin-left: 50px !important;
+    }
+    .ev-matrix-col-lbl {
+        width: 100px !important;
+        font-size: 13px !important;
+    }
+    .ev-matrix-row-labels-col {
+        height: 208px !important;
+        width: 50px !important;
+    }
+    .ev-matrix-row-lbl {
+        height: 100px !important;
+        font-size: 13px !important;
+    }
+    .ev-matrix-heatmap-grid {
+        grid-template-columns: 100px 100px !important;
+        grid-template-rows: 100px 100px !important;
+    }
+    .ev-matrix-cell-val {
+        font-size: 1.8rem !important;
+        margin-bottom: 4px !important;
+    }
+    .ev-matrix-cell-badge {
+        font-size: 0.7rem !important;
+    }
+    .ev-matrix-y-axis-label {
+        font-size: 11px !important;
+    }
+    .ev-matrix-x-axis-label {
+        font-size: 11px !important;
     }
 }
 
