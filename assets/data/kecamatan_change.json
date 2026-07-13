@@ -1,0 +1,282 @@
+[
+    {
+        "kecamatan": "Babakan Madang",
+        "gain_ha": 629.35,
+        "loss_ha": 99.0,
+        "net_change_ha": 530.36,
+        "total_change_ha": 728.35
+    },
+    {
+        "kecamatan": "Bojong Gede",
+        "gain_ha": 67.14,
+        "loss_ha": 0.91,
+        "net_change_ha": 66.22,
+        "total_change_ha": 68.05
+    },
+    {
+        "kecamatan": "Caringin",
+        "gain_ha": 888.21,
+        "loss_ha": 55.21,
+        "net_change_ha": 833.0,
+        "total_change_ha": 943.42
+    },
+    {
+        "kecamatan": "Cariu",
+        "gain_ha": 237.04,
+        "loss_ha": 194.89,
+        "net_change_ha": 42.14,
+        "total_change_ha": 431.93
+    },
+    {
+        "kecamatan": "Ciampea",
+        "gain_ha": 228.01,
+        "loss_ha": 8.76,
+        "net_change_ha": 219.25,
+        "total_change_ha": 236.78
+    },
+    {
+        "kecamatan": "Ciawi",
+        "gain_ha": 374.6,
+        "loss_ha": 274.97,
+        "net_change_ha": 99.63,
+        "total_change_ha": 649.57
+    },
+    {
+        "kecamatan": "Cibinong",
+        "gain_ha": 186.97,
+        "loss_ha": 3.69,
+        "net_change_ha": 183.28,
+        "total_change_ha": 190.66
+    },
+    {
+        "kecamatan": "Cibungbulang",
+        "gain_ha": 324.72,
+        "loss_ha": 21.92,
+        "net_change_ha": 302.79,
+        "total_change_ha": 346.64
+    },
+    {
+        "kecamatan": "Cigombong",
+        "gain_ha": 107.25,
+        "loss_ha": 28.58,
+        "net_change_ha": 78.67,
+        "total_change_ha": 135.83
+    },
+    {
+        "kecamatan": "Cigudeg",
+        "gain_ha": 350.88,
+        "loss_ha": 68.01,
+        "net_change_ha": 282.88,
+        "total_change_ha": 418.89
+    },
+    {
+        "kecamatan": "Cijeruk",
+        "gain_ha": 118.92,
+        "loss_ha": 10.7,
+        "net_change_ha": 108.21,
+        "total_change_ha": 129.62
+    },
+    {
+        "kecamatan": "Cileungsi",
+        "gain_ha": 297.41,
+        "loss_ha": 49.22,
+        "net_change_ha": 248.19,
+        "total_change_ha": 346.63
+    },
+    {
+        "kecamatan": "Ciomas",
+        "gain_ha": 57.92,
+        "loss_ha": 0.0,
+        "net_change_ha": 57.92,
+        "total_change_ha": 57.92
+    },
+    {
+        "kecamatan": "Cisarua",
+        "gain_ha": 501.68,
+        "loss_ha": 115.97,
+        "net_change_ha": 385.71,
+        "total_change_ha": 617.65
+    },
+    {
+        "kecamatan": "Ciseeng",
+        "gain_ha": 758.02,
+        "loss_ha": 12.41,
+        "net_change_ha": 745.61,
+        "total_change_ha": 770.43
+    },
+    {
+        "kecamatan": "Citeureup",
+        "gain_ha": 582.08,
+        "loss_ha": 27.08,
+        "net_change_ha": 555.0,
+        "total_change_ha": 609.17
+    },
+    {
+        "kecamatan": "Dramaga",
+        "gain_ha": 102.49,
+        "loss_ha": 3.33,
+        "net_change_ha": 99.16,
+        "total_change_ha": 105.82
+    },
+    {
+        "kecamatan": "Gunung Putri",
+        "gain_ha": 352.66,
+        "loss_ha": 9.12,
+        "net_change_ha": 343.54,
+        "total_change_ha": 361.78
+    },
+    {
+        "kecamatan": "Gunung Sindur",
+        "gain_ha": 182.13,
+        "loss_ha": 13.05,
+        "net_change_ha": 169.08,
+        "total_change_ha": 195.18
+    },
+    {
+        "kecamatan": "Jasinga",
+        "gain_ha": 598.73,
+        "loss_ha": 96.36,
+        "net_change_ha": 502.36,
+        "total_change_ha": 695.09
+    },
+    {
+        "kecamatan": "Jonggol",
+        "gain_ha": 1642.7,
+        "loss_ha": 164.17,
+        "net_change_ha": 1478.53,
+        "total_change_ha": 1806.87
+    },
+    {
+        "kecamatan": "Kelapa Nunggal",
+        "gain_ha": 856.12,
+        "loss_ha": 36.17,
+        "net_change_ha": 819.96,
+        "total_change_ha": 892.29
+    },
+    {
+        "kecamatan": "Kemang",
+        "gain_ha": 219.88,
+        "loss_ha": 5.16,
+        "net_change_ha": 214.73,
+        "total_change_ha": 225.04
+    },
+    {
+        "kecamatan": "Leuwiliang",
+        "gain_ha": 152.08,
+        "loss_ha": 59.55,
+        "net_change_ha": 92.53,
+        "total_change_ha": 211.62
+    },
+    {
+        "kecamatan": "Leuwisadeng",
+        "gain_ha": 21.45,
+        "loss_ha": 14.08,
+        "net_change_ha": 7.37,
+        "total_change_ha": 35.53
+    },
+    {
+        "kecamatan": "Megamendung",
+        "gain_ha": 476.99,
+        "loss_ha": 42.1,
+        "net_change_ha": 434.89,
+        "total_change_ha": 519.09
+    },
+    {
+        "kecamatan": "Nanggung",
+        "gain_ha": 225.68,
+        "loss_ha": 64.97,
+        "net_change_ha": 160.71,
+        "total_change_ha": 290.65
+    },
+    {
+        "kecamatan": "Pamijahan",
+        "gain_ha": 760.42,
+        "loss_ha": 411.59,
+        "net_change_ha": 348.83,
+        "total_change_ha": 1172.02
+    },
+    {
+        "kecamatan": "Parung",
+        "gain_ha": 221.5,
+        "loss_ha": 22.45,
+        "net_change_ha": 199.05,
+        "total_change_ha": 243.94
+    },
+    {
+        "kecamatan": "Parung Panjang",
+        "gain_ha": 842.34,
+        "loss_ha": 15.47,
+        "net_change_ha": 826.88,
+        "total_change_ha": 857.81
+    },
+    {
+        "kecamatan": "Ranca Bungur",
+        "gain_ha": 135.21,
+        "loss_ha": 3.05,
+        "net_change_ha": 132.16,
+        "total_change_ha": 138.27
+    },
+    {
+        "kecamatan": "Rumpin",
+        "gain_ha": 1007.11,
+        "loss_ha": 61.86,
+        "net_change_ha": 945.25,
+        "total_change_ha": 1068.97
+    },
+    {
+        "kecamatan": "Sukajaya",
+        "gain_ha": 553.18,
+        "loss_ha": 43.29,
+        "net_change_ha": 509.89,
+        "total_change_ha": 596.47
+    },
+    {
+        "kecamatan": "Sukamakmur",
+        "gain_ha": 1553.3,
+        "loss_ha": 173.69,
+        "net_change_ha": 1379.6,
+        "total_change_ha": 1726.99
+    },
+    {
+        "kecamatan": "Sukaraja",
+        "gain_ha": 151.33,
+        "loss_ha": 12.77,
+        "net_change_ha": 138.57,
+        "total_change_ha": 164.1
+    },
+    {
+        "kecamatan": "Tajur Halang",
+        "gain_ha": 172.39,
+        "loss_ha": 1.82,
+        "net_change_ha": 170.56,
+        "total_change_ha": 174.21
+    },
+    {
+        "kecamatan": "Tamansari",
+        "gain_ha": 444.09,
+        "loss_ha": 41.03,
+        "net_change_ha": 403.06,
+        "total_change_ha": 485.12
+    },
+    {
+        "kecamatan": "Tanjungsari",
+        "gain_ha": 265.43,
+        "loss_ha": 314.27,
+        "net_change_ha": -48.84,
+        "total_change_ha": 579.7
+    },
+    {
+        "kecamatan": "Tenjo",
+        "gain_ha": 923.91,
+        "loss_ha": 41.45,
+        "net_change_ha": 882.46,
+        "total_change_ha": 965.36
+    },
+    {
+        "kecamatan": "Tenjolaya",
+        "gain_ha": 755.18,
+        "loss_ha": 36.59,
+        "net_change_ha": 718.59,
+        "total_change_ha": 791.77
+    }
+]

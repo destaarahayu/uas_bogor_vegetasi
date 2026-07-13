@@ -2,6 +2,25 @@
    GeoVista Bogor - Main JavaScript
    ============================== */
 
+// ===== COUNTER ANIMATION =====
+function animateValue(elementOrId, start, end, duration, suffix) {
+    const el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+    if (!el) return;
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const current = progress * (end - start) + start;
+        el.innerText = current.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + suffix;
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            el.innerText = end.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + suffix;
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // ===== NAVBAR SCROLL EFFECT =====
@@ -101,10 +120,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===== LOAD GROUND TRUTH CSV =====
     loadGroundTruthCSV();
+
+    // ===== LOAD KECAMATAN CHANGE DATA =====
+    loadKecamatanChangeJSON();
+
+    // ===== SCROLL REVEAL (One by One) =====
+    initScrollReveal();
 });
 
 // ===== MAP INITIALIZATION =====
 function initMap() {
+    let focusedLayerKey = null;
+
     const map = L.map('map', {
         center: [-6.55, 106.8],
         zoom: 10,
@@ -112,8 +139,71 @@ function initMap() {
         preferCanvas: true // Use Canvas to fix complex polygon rendering bugs
     });
 
+    // Create custom panes for strict layering
+    map.createPane('paneAdmin');
+    map.getPane('paneAdmin').style.zIndex = '401';
+
+    map.createPane('paneTarget2024');
+    map.getPane('paneTarget2024').style.zIndex = '402';
+
+    map.createPane('paneTarget2025');
+    map.getPane('paneTarget2025').style.zIndex = '403';
+
+    map.createPane('paneLoss');
+    map.getPane('paneLoss').style.zIndex = '404';
+
+    map.createPane('paneGain');
+    map.getPane('paneGain').style.zIndex = '405';
+
     // Zoom control top-right
     L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Fullscreen control below Zoom control
+    const FullscreenControl = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function (map) {
+            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-fullscreen-control');
+            const button = L.DomUtil.create('a', 'leaflet-fullscreen-button', container);
+            button.innerHTML = '<i class="fas fa-expand"></i>';
+            button.title = 'Fullscreen';
+            button.href = '#';
+            button.style.cursor = 'pointer';
+            button.style.display = 'flex';
+            button.style.alignItems = 'center';
+            button.style.justifyContent = 'center';
+            button.style.width = '30px';
+            button.style.height = '30px';
+            button.style.backgroundColor = '#fff';
+            
+            L.DomEvent.on(button, 'click', function (e) {
+                L.DomEvent.stopPropagation(e);
+                L.DomEvent.preventDefault(e);
+                toggleFullscreen();
+            });
+            return container;
+        }
+    });
+    map.addControl(new FullscreenControl());
+
+    function toggleFullscreen() {
+        const dashboard = document.querySelector('.peta-dashboard');
+        const body = document.body;
+        const btn = document.querySelector('.leaflet-fullscreen-button i');
+        const btnLink = document.querySelector('.leaflet-fullscreen-button');
+        
+        if (dashboard.classList.contains('fullscreen-active')) {
+            dashboard.classList.remove('fullscreen-active');
+            body.classList.remove('map-fullscreen-active');
+            btn.className = 'fas fa-expand';
+            btnLink.title = 'Fullscreen';
+        } else {
+            dashboard.classList.add('fullscreen-active');
+            body.classList.add('map-fullscreen-active');
+            btn.className = 'fas fa-compress';
+            btnLink.title = 'Exit Fullscreen';
+        }
+        setTimeout(() => { map.invalidateSize(); }, 300);
+    }
 
     // Scale bar
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
@@ -153,115 +243,278 @@ function initMap() {
         loss:       { color: '#D50000', weight: 1.5, stroke: true, fillColor: '#FF5252', fillOpacity: 0.75, smoothFactor: 2 }
     };
 
-    // ===== POPUP BUILDERS (data dibaca langsung dari atribut GeoJSON) =====
+    // ===== PRELOAD KECAMATAN DATA =====
+    let kecamatanGeoJSON = null;
+    let kecamatanNameIndex = [];     // ['Cibinong', 'Citeureup', ...]
+    let kecamatanLayer = null;       // L.geoJSON layer for kecamatan
+    let currentKecamatanHighlight = null;
+    let highlightedKecamatanLayer = null;
 
-    // Shared popup wrapper style
-    const popupBase = 'font-family:\'Poppins\',sans-serif;min-width:220px;max-width:300px;';
-    function popupRow(label, value, valueStyle) {
-        const vs = valueStyle || 'color:#1a1a1a;font-size:12px;font-weight:600;';
-        return `
-            <tr>
-                <td style="padding:7px 14px 7px 0;color:#888;font-size:11px;font-weight:500;vertical-align:top;white-space:nowrap;">${label}</td>
-                <td style="${vs}padding:7px 0;font-size:12px;">${value}</td>
-            </tr>`;
+    fetch('assets/data/batas_kecamatan_bogor.geojson')
+        .then(res => { if (res.ok) return res.json(); return null; })
+        .then(data => {
+            if (!data) return;
+            kecamatanGeoJSON = data;
+
+            // Build search index
+            kecamatanNameIndex = [];
+            data.features.forEach(f => {
+                const name = extractKecamatanName(f.properties);
+                if (name && !kecamatanNameIndex.includes(name)) {
+                    kecamatanNameIndex.push(name);
+                }
+            });
+            kecamatanNameIndex.sort();
+
+            // Build clickable kecamatan layer (on paneAdmin)
+            kecamatanLayer = L.geoJSON(data, {
+                pane: 'paneAdmin',
+                renderer: canvasRenderer,
+                style: () => ({ color: '#FF9800', weight: 1.5, fill: false, opacity: 0.7 }),
+                onEachFeature: (feature, layer) => {
+                    layer.on('click', (e) => {
+                        if (e.originalEvent) e.originalEvent.stopPropagation();
+                        L.DomEvent.stopPropagation(e);
+                        const html = buildCustomPopup(feature, 'admin', e.latlng);
+                        layer.bindPopup(html, { maxWidth: 280 }).openPopup(e.latlng);
+                    });
+                }
+            }).addTo(batasAdminGroup);
+        })
+        .catch(err => {
+            console.warn('[GeoVista] batas_kecamatan_bogor.geojson not loaded:', err.message);
+        });
+
+    // buildKecamatanPopupHtml has been replaced by buildCustomPopup
+
+
+
+    // Extract kecamatan name from any GeoJSON feature properties
+    function extractKecamatanName(props) {
+        if (!props) return null;
+        const fieldPriority = ['NAME_3','NAMOBJ','WADMKC','KECAMATAN','NAMA_KEC','NAMAKEC','KECAMATAN_','NAME','Nama','nama','kecamatan','name_3','namobj'];
+        for (let k of fieldPriority) {
+            if (props[k] && String(props[k]).trim() !== '' && String(props[k]) !== 'NA') {
+                return String(props[k]).trim();
+            }
+        }
+        // Fallback: scan all keys
+        for (let k of Object.keys(props)) {
+            const kl = k.toLowerCase();
+            if (kl.includes('kec') || kl.includes('name') || kl.includes('nama')) {
+                if (props[k] && String(props[k]).trim() !== '' && String(props[k]) !== 'NA') {
+                    return String(props[k]).trim();
+                }
+            }
+        }
+        console.log('[GeoVista] Field nama kecamatan tidak ditemukan. Properties:', props);
+        return null;
     }
-    function popupDivider() {
-        return `<tr><td colspan="2" style="padding:0;border-top:1px solid #f0f0f0;"></td></tr>`;
+
+    function extractKabupatenName(props) {
+        if (!props) return 'Bogor';
+        const fieldPriority = ['NAME_2','WADMKK','KABUPATEN','name_2'];
+        for (let k of fieldPriority) {
+            if (props[k] && String(props[k]).trim() !== '' && String(props[k]) !== 'NA') {
+                return String(props[k]).trim();
+            }
+        }
+        return 'Bogor';
     }
-    function popupHeader(icon, title, accentColor) {
-        return `
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid ${accentColor};">
-                <span style="width:28px;height:28px;border-radius:8px;background:${accentColor}20;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i class="${icon}" style="color:${accentColor};font-size:12px;"></i>
-                </span>
-                <span style="font-size:13px;font-weight:700;color:#1a1a1a;">${title}</span>
-            </div>`;
+
+    function findKecamatanDesa(latlng) {
+        if (!kecamatanGeoJSON || !latlng) return { kecamatan: null, desa: null };
+        const pt = turf.point([latlng.lng, latlng.lat]);
+        for (let f of kecamatanGeoJSON.features) {
+            if (f.geometry && turf.booleanPointInPolygon(pt, f)) {
+                const name = extractKecamatanName(f.properties);
+                return { kecamatan: name, desa: null, feature: f };
+            }
+        }
+        return { kecamatan: null, desa: null };
     }
-    function formatArea(areaSqm) {
-        if (areaSqm === null || areaSqm === undefined) return null;
-        const ha  = (areaSqm / 10000).toLocaleString('id-ID', { maximumFractionDigits: 2 });
-        const sqm = Number(areaSqm).toLocaleString('id-ID', { maximumFractionDigits: 0 });
-        return `${sqm} m² &nbsp;<span style="color:#888;font-weight:400;">(${ha} ha)</span>`;
+
+    function getAreaHectares(f) {
+        let areaSqm = null;
+        if (f.properties && f.properties.area !== undefined) {
+            areaSqm = Number(f.properties.area);
+        } else if (f.properties && f.properties.luas !== undefined) {
+            areaSqm = Number(f.properties.luas);
+        } else {
+            areaSqm = turf.area(f);
+        }
+        return areaSqm / 10000;
+    }
+
+    function formatPercent(pct) {
+        if (pct === 0) return '0,00%';
+        if (pct < 0.01) {
+            return pct.toLocaleString('id-ID', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '%';
+        }
+        return pct.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
     }
 
     // --- Generic Popup Builder ---
-    function buildCustomPopup(props, type) {
-        let wilayah = 'Kabupaten Bogor';
-        for (let k of Object.keys(props)) {
-            const kl = k.toLowerCase();
-            if (kl === 'wadmkk' || kl === 'kabupaten' || kl === 'nama' || kl === 'name') {
-                wilayah = props[k]; break;
-            }
-        }
-
-        let luasM2 = 0;
-        for (let k of Object.keys(props)) {
-            const kl = k.toLowerCase();
-            if (kl.includes('luas') || kl.includes('area')) {
-                luasM2 = Number(props[k]); break;
-            }
-        }
+    function buildCustomPopup(feature, type, latlng) {
+        const lat = latlng ? latlng.lat.toFixed(6) : '-';
+        const lng = latlng ? latlng.lng.toFixed(6) : '-';
         
-        let pct = '-';
-        for (let k of Object.keys(props)) {
-            const kl = k.toLowerCase();
-            if (kl.includes('persen') || kl.includes('pct')) {
-                pct = Number(props[k]).toFixed(2) + ' %'; break;
-            }
-        }
-        // Fallback computation if exact percentage property is missing
-        if (pct === '-' && luasM2 > 0) {
-            pct = (luasM2 / 2988380000 * 100).toFixed(4) + ' %'; // Approx area Bogor
-        }
-
-        let rows = '';
-        let icon = 'fas fa-map', title = 'Batas Administrasi', color = '#FF9800';
-
-        if (type === 'admin') {
-            rows += popupRow('Nama Wilayah', wilayah) + popupDivider();
-            rows += popupRow('Luas Wilayah', formatArea(luasM2));
+        let title = '';
+        let accentColor = '';
+        let kategoriLayer = '';
+        let periode = '';
+        
+        if (type === 'admin' || type === 'batasAdmin') {
+            title = 'Batas Administrasi';
+            accentColor = '#FF9800'; // Oranye
+            kategoriLayer = 'Batas Administrasi';
+            periode = '2024–2025';
         } else if (type === 'target2024') {
-            icon = 'fas fa-crosshairs'; title = 'Target Tahun 2024'; color = '#43A047';
-            rows += popupRow('Wilayah', wilayah) + popupDivider();
-            rows += popupRow('Periode', '2024') + popupDivider();
-            rows += popupRow('Luas', formatArea(luasM2)) + popupDivider();
-            rows += popupRow('Persentase terhadap luas wilayah', pct);
+            title = 'Target Tahun 2024';
+            accentColor = '#2E7D32'; // Hijau tua
+            kategoriLayer = 'Target Tahun 2024';
+            periode = '2024';
         } else if (type === 'target2025') {
-            icon = 'fas fa-crosshairs'; title = 'Target Tahun 2025'; color = '#2196F3';
-            rows += popupRow('Wilayah', wilayah) + popupDivider();
-            rows += popupRow('Periode', '2025') + popupDivider();
-            rows += popupRow('Luas', formatArea(luasM2)) + popupDivider();
-            rows += popupRow('Persentase terhadap luas wilayah', pct);
+            title = 'Target Tahun 2025';
+            accentColor = '#2196F3'; // Biru
+            kategoriLayer = 'Target Tahun 2025';
+            periode = '2025';
         } else if (type === 'gain') {
-            icon = 'fas fa-arrow-up'; title = 'Gain'; color = '#00E676';
-            rows += popupRow('Wilayah', wilayah) + popupDivider();
-            rows += popupRow('Periode', '2024 &rarr; 2025') + popupDivider();
-            rows += popupRow('Luas Pertambahan Vegetasi', formatArea(luasM2)) + popupDivider();
-            rows += popupRow('Persentase Pertambahan', pct);
+            title = 'Gain Vegetasi';
+            accentColor = '#00E676'; // Hijau terang
+            kategoriLayer = 'Gain';
+            periode = '2024–2025';
         } else if (type === 'loss') {
-            icon = 'fas fa-arrow-down'; title = 'Loss'; color = '#FF5252';
-            rows += popupRow('Wilayah', wilayah) + popupDivider();
-            rows += popupRow('Periode', '2024 &rarr; 2025') + popupDivider();
-            rows += popupRow('Luas Pengurangan Vegetasi', formatArea(luasM2)) + popupDivider();
-            rows += popupRow('Persentase Pengurangan', pct);
+            title = 'Loss Vegetasi';
+            accentColor = '#FF5252'; // Merah
+            kategoriLayer = 'Loss';
+            periode = '2024–2025';
         }
+
+        // Detect kecamatan
+        const loc = findKecamatanDesa(latlng);
+        let kecamatan = loc.kecamatan;
+        if (!kecamatan && feature) {
+            kecamatan = extractKecamatanName(feature.properties);
+        }
+        if (!kecamatan) {
+            kecamatan = '-';
+        }
+
+        const areaHa = getAreaHectares(feature);
+        const totalAreaHa = 298838;
+        const pct = (areaHa / totalAreaHa) * 100;
         
+        const luasFormatted = areaHa.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Ha';
+        const pctFormatted = formatPercent(pct);
+
+        let detailsHtml = '';
+
+        if (type === 'admin' || type === 'batasAdmin') {
+            detailsHtml = `
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Kabupaten</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">Bogor</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Kecamatan</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${kecamatan}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Luas Wilayah</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${luasFormatted}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Persentase terhadap Kabupaten</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${pctFormatted}</span>
+                </div>
+            `;
+        } else {
+            let statusPerubahanHtml = '';
+            if (type === 'gain') {
+                statusPerubahanHtml = `
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Status Perubahan</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #00E676;">Pertambahan Vegetasi</span>
+                </div>`;
+            } else if (type === 'loss') {
+                statusPerubahanHtml = `
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Status Perubahan</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #FF5252;">Pengurangan Vegetasi</span>
+                </div>`;
+            }
+
+            detailsHtml = `
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Kabupaten</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">Bogor</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Kecamatan</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${kecamatan}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Objek Target</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">Vegetasi</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Kategori Layer</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${kategoriLayer}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Periode</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${periode}</span>
+                </div>
+                ${statusPerubahanHtml}
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Luas Area (Ha)</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${luasFormatted}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 180px 10px 1fr; gap: 4px; margin-bottom: 5px;">
+                    <span style="font-weight: 500; color: #777;">Persentase terhadap luas wilayah (%)</span>
+                    <span style="color: #777; font-weight: 500;">:</span>
+                    <span style="font-weight: 600; color: #222;">${pctFormatted}</span>
+                </div>
+            `;
+        }
+
         return `
-            <div style="${popupBase}">
-                ${popupHeader(icon, title, color)}
-                <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
-                    <table style="width:100%;border-collapse:collapse;">
-                        ${rows}
-                    </table>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 11px; color: #333; line-height: 1.45; padding: 4px; min-width: 310px; max-width: 350px;">
+                <div style="font-weight: 800; font-size: 13px; margin-bottom: 12px; color: ${accentColor}; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    ${title}
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    ${detailsHtml}
+                </div>
+                
+                <div style="display: flex; gap: 20px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.08);">
+                    <div>
+                        <span style="font-size: 9px; color: #999; display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Latitude</span>
+                        <span style="font-weight: 600; color: #444; font-size: 11px;">${lat}</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 9px; color: #999; display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Longitude</span>
+                        <span style="font-weight: 600; color: #444; font-size: 11px;">${lng}</span>
+                    </div>
                 </div>
             </div>`;
     }
 
-    function buildPopupBatasAdmin(props) { return buildCustomPopup(props, 'admin'); }
-    function buildPopupTarget2024(props) { return buildCustomPopup(props, 'target2024'); }
-    function buildPopupTarget2025(props) { return buildCustomPopup(props, 'target2025'); }
-    function buildPopupGain(props) { return buildCustomPopup(props, 'gain'); }
-    function buildPopupLoss(props) { return buildCustomPopup(props, 'loss'); }
+
 
     // ===== LAYER REFERENCES =====
     const layerRefs = {
@@ -274,56 +527,6 @@ function initMap() {
 
     // NO built-in Layer Control — wired via custom HTML panel (see panel wiring below)
 
-    // ===== GEODESIC AREA CALCULATORS =====
-    function getPolygonArea(coordinates) {
-        let totalArea = 0;
-        const r = 6378137; // Earth radius in meters
-        function ringArea(coords) {
-            let area = 0;
-            if (coords.length > 2) {
-                for (let i = 0; i < coords.length - 1; i++) {
-                    const p1 = coords[i];
-                    const p2 = coords[i+1];
-                    area += (p2[0] - p1[0]) * Math.PI / 180 * 
-                            (2 + Math.sin(p1[1] * Math.PI / 180) + Math.sin(p2[1] * Math.PI / 180));
-                }
-                area = area * r * r / 2;
-            }
-            return area;
-        }
-        totalArea += Math.abs(ringArea(coordinates[0]));
-        for (let i = 1; i < coordinates.length; i++) {
-            totalArea -= Math.abs(ringArea(coordinates[i]));
-        }
-        return totalArea;
-    }
-
-    function calculateGeodesicArea(feature) {
-        if (!feature || !feature.geometry) return 0;
-        const geom = feature.geometry;
-        let totalAreaSqm = 0;
-        if (geom.type === 'Polygon') {
-            totalAreaSqm += getPolygonArea(geom.coordinates);
-        } else if (geom.type === 'MultiPolygon') {
-            geom.coordinates.forEach(poly => {
-                totalAreaSqm += getPolygonArea(poly);
-            });
-        }
-        return totalAreaSqm;
-    }
-
-    function calculateGeoJSONArea(data) {
-        let totalAreaSqm = 0;
-        if (data && data.features) {
-            data.features.forEach(f => {
-                if (f.properties && f.properties.area) {
-                    totalAreaSqm += Number(f.properties.area);
-                }
-            });
-        }
-        return totalAreaSqm / 10000; // convert to Ha
-    }
-
     // ===== LOAD BATAS KABUPATEN BOGOR =====
     fetch('assets/data/batas_kabupaten_bogor.geojson')
         .then(res => {
@@ -331,13 +534,56 @@ function initMap() {
             return res.json();
         })
         .then(data => {
+            // Convert Polygon/MultiPolygon to LineString/MultiLineString to prevent fill click capture on Canvas
+            if (data && data.features) {
+                data.features.forEach(f => {
+                    if (f.geometry) {
+                        if (f.geometry.type === 'Polygon') {
+                            f.geometry.type = 'LineString';
+                            f.geometry.coordinates = f.geometry.coordinates[0]; // exterior ring
+                        } else if (f.geometry.type === 'MultiPolygon') {
+                            f.geometry.type = 'MultiLineString';
+                            f.geometry.coordinates = f.geometry.coordinates.map(poly => poly[0]); // exterior ring of each polygon
+                        }
+                    }
+                });
+            }
+
             const geoLayer = L.geoJSON(data, {
+                pane: 'paneAdmin',
                 renderer: canvasRenderer,
                 style: () => layerStyles.batasAdmin,
                 onEachFeature: (feature, layer) => {
-                    if (feature.properties) {
-                        layer.bindPopup(() => buildPopupBatasAdmin(feature.properties));
-                    }
+                    layer.on('click', (e) => {
+                        if (e.originalEvent) e.originalEvent.stopPropagation();
+                        L.DomEvent.stopPropagation(e);
+                        const popupContent = buildCustomPopup(feature, 'admin', e.latlng);
+                        layer.bindPopup(popupContent).openPopup(e.latlng);
+                    });
+
+                    // Highlight on hover
+                    layer.on({
+                        mouseover: (e) => {
+                            const l = e.target;
+                            l.setStyle({
+                                weight: 5,
+                                color: '#FFB74D'
+                            });
+                        },
+                        mouseout: (e) => {
+                            const isFocused = (focusedLayerKey === null || focusedLayerKey === 'batasAdmin');
+                            if (isFocused) {
+                                geoLayer.resetStyle(e.target);
+                            } else {
+                                const orig = layerStyles.batasAdmin;
+                                e.target.setStyle({
+                                    color: orig.color,
+                                    weight: orig.weight * 0.5,
+                                    opacity: 0.15
+                                });
+                            }
+                        }
+                    });
                 }
             });
             layerRefs.batasAdmin = geoLayer;
@@ -347,45 +593,37 @@ function initMap() {
                 map.fitBounds(bounds, { padding: [40, 40] });
                 window.geovistaInitBounds = bounds;
                 
-                // Calculate dynamic geodesic area of Kabupaten Bogor boundary
-                let totalAreaSqm = 0;
-                if (data.features && data.features.length > 0) {
-                    totalAreaSqm = calculateGeodesicArea(data.features[0]);
-                }
-                const totalAreaKm2 = totalAreaSqm / 1000000;
-                window.boundaryAreaHa = totalAreaSqm / 10000;
-                
                 const elLuas = document.getElementById('val-luas');
-                if (elLuas) elLuas.innerHTML = Math.round(totalAreaKm2).toLocaleString('id-ID') + ' km²';
+                if (elLuas) elLuas.innerHTML = '298.838,00 Ha';
             } catch (e) {
                 map.setView([-6.55, 106.8], 10);
                 const elLuas = document.getElementById('val-luas');
-                if (elLuas) elLuas.innerHTML = '—';
+                if (elLuas) elLuas.innerHTML = '298.838,00 Ha';
             }
         })
         .catch(err => {
             console.warn('[GeoVista] batas_kabupaten_bogor.geojson:', err.message);
-            const elLuas = document.getElementById('val-luas'); if (elLuas) elLuas.innerHTML = '—';
+            const elLuas = document.getElementById('val-luas'); if (elLuas) elLuas.innerHTML = '298.838,00 Ha';
         });
 
     // ===== PRELOAD & CACHE LAYER ENGINE =====
     const lazyConfig = {
-        target2024: { type: 'geojson', url: 'assets/data/target_2024.geojson', style: 'target2024', popup: buildPopupTarget2024, silent: false, statCard: 'val-t2024' },
-        target2025: { type: 'geojson', url: 'assets/data/target_2025.geojson', style: 'target2025', popup: buildPopupTarget2025, silent: false, statCard: 'val-t2025' },
-        gain:       { type: 'geojson', url: 'assets/data/gain_vegetasi.geojson', style: 'gain',       popup: buildPopupGain,       silent: true,  statCard: 'val-gain' },
-        loss:       { type: 'geojson', url: 'assets/data/loss_vegetasi.geojson', style: 'loss',       popup: buildPopupLoss,       silent: true,  statCard: 'val-loss' }
+        target2024: { type: 'geojson', url: 'assets/data/target_2024.geojson', style: 'target2024', silent: false, statCard: 'val-t2024' },
+        target2025: { type: 'geojson', url: 'assets/data/target_2025.geojson', style: 'target2025', silent: false, statCard: 'val-t2025' },
+        gain:       { type: 'geojson', url: 'assets/data/gain_vegetasi.geojson', style: 'gain',       silent: true,  statCard: 'val-gain' },
+        loss:       { type: 'geojson', url: 'assets/data/loss_vegetasi.geojson', style: 'loss',       silent: true,  statCard: 'val-loss' }
     };
-
+ 
     const lazyState = {};
     Object.keys(lazyConfig).forEach(k => { lazyState[k] = { promise: null }; });
-
+ 
     function fmtHa(sqm) {
         const ha = sqm / 10000;
         return ha >= 1000
             ? (ha / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' rb ha'
             : ha.toLocaleString('id-ID', { maximumFractionDigits: 0 }) + ' ha';
     }
-
+ 
     async function checkFileExists(key) {
         try {
             const res = await fetch(lazyConfig[key].url, { method: 'HEAD' });
@@ -396,44 +634,105 @@ function initMap() {
         } catch { /* silent */ }
     }
     ['gain', 'loss'].forEach(checkFileExists);
-
+ 
     // Fetch and build L.geoJSON or GeoRasterLayer once, returning a promise to avoid duplicate fetches
     function loadLayerCache(key) {
         const cfg = lazyConfig[key];
         const state = lazyState[key];
         
         if (state.promise) return state.promise;
-
+ 
         state.promise = (async () => {
             try {
                 const res = await fetch(cfg.url);
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-
-                // Calculate dynamic GeoJSON area
-                const computedAreaHa = calculateGeoJSONArea(data);
+                
+                const paneMap = {
+                    'target2024': 'paneTarget2024',
+                    'target2025': 'paneTarget2025',
+                    'loss': 'paneLoss',
+                    'gain': 'paneGain'
+                };
+                const paneName = paneMap[key] || 'overlayPane';
 
                 const geoLayer = L.geoJSON(data, {
+                    pane: paneName,
                     renderer: canvasRenderer,
                     style: () => layerStyles[cfg.style],
                     onEachFeature: (feature, layer) => {
-                        if (feature.properties) {
-                            layer.bindPopup(() => cfg.popup(feature.properties));
-                        }
+                        layer.on('click', (e) => {
+                            if (e.originalEvent) e.originalEvent.stopPropagation();
+                            L.DomEvent.stopPropagation(e);
+                            const popupContent = buildCustomPopup(feature, key, e.latlng);
+                            layer.bindPopup(popupContent).openPopup(e.latlng);
+                        });
+
+                        // Tooltip hover
+                        const areaHa = getAreaHectares(feature);
+                        const areaText = areaHa.toLocaleString('id-ID', { maximumFractionDigits: 0 }) + ' Ha';
+                        const labelMap = {
+                            gain: 'Gain',
+                            loss: 'Loss',
+                            target2024: 'Target 2024',
+                            target2025: 'Target 2025'
+                        };
+                        const label = labelMap[key] || key;
+                        layer.bindTooltip(`<strong>${label}</strong><br>${areaText}`, {
+                            sticky: true,
+                            direction: 'top',
+                            opacity: 0.9,
+                            className: 'custom-map-tooltip'
+                        });
+
+                        // Highlight on hover
+                        layer.on({
+                            mouseover: (e) => {
+                                const l = e.target;
+                                const orig = layerStyles[cfg.style];
+                                l.setStyle({
+                                    weight: (orig.weight || 1.5) + 1.5,
+                                    fillOpacity: Math.min((orig.fillOpacity || 0.5) + 0.15, 0.95),
+                                    color: '#ffffff'
+                                });
+                                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                                    l.bringToFront();
+                                }
+                            },
+                            mouseout: (e) => {
+                                const isFocused = (focusedLayerKey === null || focusedLayerKey === key);
+                                if (isFocused) {
+                                    geoLayer.resetStyle(e.target);
+                                } else {
+                                    const orig = layerStyles[cfg.style];
+                                    e.target.setStyle({
+                                        color: orig.color,
+                                        weight: orig.weight * 0.5,
+                                        fillOpacity: orig.fillOpacity * 0.15,
+                                        opacity: 0.15
+                                    });
+                                }
+                            }
+                        });
                     }
                 });
 
                 layerRefs[key] = geoLayer;
-
-                if (cfg.statCard) {
-                    const el = document.getElementById(cfg.statCard);
-                    if (el) {
-                        el.classList.remove('peta-stat-pending');
-                        const fmt = val => val.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                        el.innerText = fmt(computedAreaHa) + ' Ha';
-                    }
+                updateActiveStats();
+                updateActiveBadge();
+ 
+                // Focus rendering edge case handler
+                const isFocused = (focusedLayerKey === null || focusedLayerKey === key);
+                if (!isFocused) {
+                    const orig = layerStyles[cfg.style];
+                    geoLayer.setStyle({
+                        color: orig.color,
+                        weight: orig.weight * 0.5,
+                        fillOpacity: orig.fillOpacity * 0.15,
+                        opacity: 0.15
+                    });
                 }
-
+ 
                 if (key === 'gain' || key === 'loss') {
                     const lgEl = document.getElementById('legend-' + key);
                     if (lgEl) lgEl.querySelector('span:last-child').style.opacity = '1';
@@ -448,23 +747,16 @@ function initMap() {
         return state.promise;
     }
 
-    // Preload all layers in background sequentially to avoid blocking the main thread
-    async function preloadAllLayers() {
-        const keys = ['target2024', 'target2025', 'gain', 'loss'];
-        for (const key of keys) {
-            try {
-                await loadLayerCache(key);
-            } catch (e) {
-                console.warn('[GeoVista] Preload failed for ' + key, e);
-            }
+    // Preload Target 2024 and 2025 in background
+    function schedulePreload(key) {
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => loadLayerCache(key));
+        } else {
+            setTimeout(() => loadLayerCache(key), 1000);
         }
     }
-
-    if (window.requestIdleCallback) {
-        window.requestIdleCallback(() => preloadAllLayers());
-    } else {
-        setTimeout(preloadAllLayers, 1000);
-    }
+    schedulePreload('target2024');
+    schedulePreload('target2025');
 
     // ===== CUSTOM PANEL: BASEMAP RADIOS =====
     const basemapTiles = { osm: osmStandard, topo: osmTopo, satellite: esriSatellite };
@@ -523,6 +815,98 @@ function initMap() {
         if(chkLoss.checked) toggleLayer('loss', true);
     }
 
+    // ===== INTERACTIVE LEGEND FOCUS =====
+    const legendMap = {
+        'legend-admin': 'batasAdmin',
+        'legend-target2024': 'target2024',
+        'legend-target2025': 'target2025',
+        'legend-gain': 'gain',
+        'legend-loss': 'loss'
+    };
+
+    Object.keys(legendMap).forEach(id => {
+        const row = document.getElementById(id);
+        if (!row) return;
+        
+        row.style.cursor = 'pointer';
+        row.style.transition = 'opacity 0.3s ease, transform 0.2s ease';
+        
+        row.addEventListener('click', () => {
+            const key = legendMap[id];
+            
+            // If already focused, unfocus
+            if (focusedLayerKey === key) {
+                focusedLayerKey = null;
+            } else {
+                focusedLayerKey = key;
+            }
+            
+            applyLegendFocus();
+        });
+
+        row.addEventListener('mouseenter', () => {
+            if (focusedLayerKey === null) {
+                row.style.transform = 'translateX(4px)';
+            }
+        });
+        row.addEventListener('mouseleave', () => {
+            if (focusedLayerKey === null) {
+                row.style.transform = 'translateX(0)';
+            } else if (focusedLayerKey === legendMap[id]) {
+                row.style.transform = 'scale(1.05)';
+            } else {
+                row.style.transform = 'scale(0.95)';
+            }
+        });
+    });
+
+    function applyLegendFocus() {
+        // 1. Update Legend UI styles
+        Object.keys(legendMap).forEach(id => {
+            const row = document.getElementById(id);
+            const key = legendMap[id];
+            if (!row) return;
+            
+            if (focusedLayerKey === null) {
+                row.style.opacity = '1';
+                row.style.transform = 'scale(1)';
+                row.classList.remove('legend-active');
+            } else if (focusedLayerKey === key) {
+                row.style.opacity = '1';
+                row.style.transform = 'scale(1.05)';
+                row.classList.add('legend-active');
+            } else {
+                row.style.opacity = '0.35';
+                row.style.transform = 'scale(0.95)';
+                row.classList.remove('legend-active');
+            }
+        });
+        
+        // 2. Update Map Layers Opacities
+        const keys = ['batasAdmin', 'target2024', 'target2025', 'gain', 'loss'];
+        keys.forEach(k => {
+            const targetLayer = k === 'batasAdmin' ? layerRefs.batasAdmin : layerRefs[k];
+            if (!targetLayer) return;
+            
+            const isFocused = (focusedLayerKey === null || focusedLayerKey === k);
+            
+            if (isFocused) {
+                // Restore original style
+                const orig = k === 'batasAdmin' ? layerStyles.batasAdmin : layerStyles[lazyConfig[k].style];
+                targetLayer.setStyle(orig);
+            } else {
+                // Dim style
+                const orig = k === 'batasAdmin' ? layerStyles.batasAdmin : layerStyles[lazyConfig[k].style];
+                targetLayer.setStyle({
+                    color: orig.color,
+                    weight: orig.weight * 0.5,
+                    fillOpacity: orig.fillOpacity ? orig.fillOpacity * 0.15 : 0,
+                    opacity: 0.15
+                });
+            }
+        });
+    }
+
     // ===== LOAD RINGKASAN CSV =====
     fetch('assets/data/Ringkasan_Perubahan_Vegetasi_Bogor.csv')
         .then(res => res.text())
@@ -547,26 +931,52 @@ function initMap() {
             
             const fmt = val => val.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
-            if (document.getElementById('stat-luas-2024')) document.getElementById('stat-luas-2024').innerText = fmt(luas2024) + ' Ha';
-            if (document.getElementById('stat-luas-2025')) document.getElementById('stat-luas-2025').innerText = fmt(luas2025) + ' Ha';
-            if (document.getElementById('stat-gain')) document.getElementById('stat-gain').innerText = fmt(gain) + ' Ha';
-            if (document.getElementById('stat-loss')) document.getElementById('stat-loss').innerText = fmt(loss) + ' Ha';
-            if (document.getElementById('stat-net-change')) document.getElementById('stat-net-change').innerText = fmt(netChange) + ' Ha';
-            if (document.getElementById('stat-pct-change')) document.getElementById('stat-pct-change').innerText = fmt(pctChange) + '%';
+            // Stats counting animation
+            animateValue('stat-luas-2024', 0, luas2024, 1500, 'Ha');
+            animateValue('stat-luas-2025', 0, luas2025, 1500, 'Ha');
+            animateValue('stat-gain', 0, gain, 1500, 'Ha');
+            animateValue('stat-loss', 0, loss, 1500, 'Ha');
+            animateValue('stat-net-change', 0, netChange, 1500, 'Ha');
+            animateValue('stat-pct-change', 0, pctChange, 1500, '%');
+            
+            animateValue('val-t2024', 0, luas2024, 1500, 'Ha');
+            animateValue('val-t2025', 0, luas2025, 1500, 'Ha');
+            animateValue('val-gain', 0, gain, 1500, 'Ha');
+            animateValue('val-loss', 0, loss, 1500, 'Ha');
 
-            // Update Ringkasan Temuan Card values dynamically from CSV
-            if (document.getElementById('rt-luas-2024')) document.getElementById('rt-luas-2024').innerText = fmt(luas2024) + ' Ha';
-            if (document.getElementById('rt-luas-2025')) document.getElementById('rt-luas-2025').innerText = fmt(luas2025) + ' Ha';
-            if (document.getElementById('rt-gain')) document.getElementById('rt-gain').innerText = fmt(gain) + ' Ha';
-            if (document.getElementById('rt-loss')) document.getElementById('rt-loss').innerText = fmt(loss) + ' Ha';
-            if (document.getElementById('rt-net-change')) document.getElementById('rt-net-change').innerText = fmt(netChange) + ' Ha';
-            if (document.getElementById('rt-pct-change')) document.getElementById('rt-pct-change').innerText = fmt(pctChange) + '%';
+            // Ringkasan temuan counting animation
+            animateValue('rt-luas-2024', 0, luas2024, 1500, 'Ha');
+            animateValue('rt-luas-2025', 0, luas2025, 1500, 'Ha');
+            animateValue('rt-gain', 0, gain, 1500, 'Ha');
+            animateValue('rt-loss', 0, loss, 1500, 'Ha');
+            animateValue('rt-net-change', 0, netChange, 1500, 'Ha');
+            animateValue('rt-pct-change', 0, pctChange, 1500, '%');
             
             // Draw Chart
             const ctx = document.getElementById('insightChart');
             if (ctx) {
+                const barValuePlugin = {
+                    id: 'barValuePlugin',
+                    afterDraw(chart) {
+                        const ctx = chart.ctx;
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            meta.data.forEach((bar, index) => {
+                                const data = dataset.data[index];
+                                const label = data.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Ha';
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = '600 11px Poppins, sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+                                ctx.fillText(label, bar.x, bar.y - 8);
+                            });
+                        });
+                    }
+                };
+
                 new Chart(ctx, {
                     type: 'bar',
+                    plugins: [barValuePlugin],
                     data: {
                         labels: ['Luas Vegetasi 2024', 'Luas Vegetasi 2025'],
                         datasets: [{
@@ -580,12 +990,26 @@ function initMap() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeOutQuart'
+                        },
                         plugins: { 
                             legend: { display: false },
                             tooltip: {
+                                backgroundColor: 'rgba(18, 60, 32, 0.95)',
+                                titleFont: { family: 'Poppins', size: 13, weight: 'bold' },
+                                bodyFont: { family: 'Poppins', size: 12 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                displayColors: false,
                                 callbacks: {
+                                    title: function(context) {
+                                        return context[0].label;
+                                    },
                                     label: function(context) {
-                                        return context.parsed.y.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ha';
+                                        const val = context.raw;
+                                        return 'Luas: ' + val.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ha';
                                     }
                                 }
                             }
@@ -593,6 +1017,7 @@ function initMap() {
                         scales: { 
                             y: { 
                                 beginAtZero: true,
+                                grace: '15%',
                                 ticks: { 
                                     color: '#ffffff',
                                     callback: function(value) {
@@ -613,20 +1038,15 @@ function initMap() {
             // Draw Pie Chart
             const pieCtx = document.getElementById('compositionChart');
             if (pieCtx) {
-                // Use boundary area calculated from GeoJSON if available, else fallback to CSV-derived estimate
-                const totalArea = window.boundaryAreaHa || 298838;
+                const totalArea = 298838; // total area of Kabupaten Bogor in Hectares
                 const stable = totalArea - gain - loss;
                 const totalPie = gain + loss + stable;
-                const fmtPct = val => (val / totalPie * 100).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
+                const fmtPct = val => (val / totalArea * 100).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
                 
                 new Chart(pieCtx, {
                     type: 'pie',
                     data: {
-                        labels: [
-                            'Gain Area (' + fmtPct(gain) + ')',
-                            'Loss Area (' + fmtPct(loss) + ')',
-                            'Stable Area (' + fmtPct(stable) + ')'
-                        ],
+                        labels: ['Gain Area', 'Loss Area', 'Stable Area'],
                         datasets: [{
                             data: [gain, loss, stable],
                             backgroundColor: ['#2E7D32', '#D32F2F', '#5C756B'],
@@ -637,24 +1057,23 @@ function initMap() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeOutQuart'
+                        },
                         plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right',
-                                labels: {
-                                    color: '#ffffff',
-                                    font: {
-                                        family: 'Poppins, Inter, sans-serif',
-                                        size: 12
-                                    }
-                                }
-                            },
+                            legend: { display: false },
                             tooltip: {
+                                backgroundColor: 'rgba(18, 60, 32, 0.95)',
+                                titleFont: { family: 'Poppins', size: 13, weight: 'bold' },
+                                bodyFont: { family: 'Poppins', size: 12 },
+                                padding: 12,
+                                cornerRadius: 8,
                                 callbacks: {
                                     label: function(context) {
-                                        const label = context.label.split(' (')[0] || '';
+                                        const label = context.label || '';
                                         const value = context.parsed;
-                                        const pct = (value / totalPie * 100).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
+                                        const pct = (value / totalArea * 100).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
                                         return label + ': ' + value.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' Ha (' + pct + ')';
                                     }
                                 }
@@ -662,6 +1081,30 @@ function initMap() {
                         }
                     }
                 });
+
+                // Custom Legend rendering
+                const legendEl = document.getElementById('compositionLegend');
+                if (legendEl) {
+                    legendEl.innerHTML = `
+                        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; line-height: 2.2;">
+                            <li style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-block; width: 12px; height: 12px; background-color: #2E7D32; border-radius: 50%; flex-shrink: 0;"></span>
+                                <span>Gain Area: <strong>${fmt(gain)} Ha</strong> (${fmtPct(gain)})</span>
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-block; width: 12px; height: 12px; background-color: #D32F2F; border-radius: 50%; flex-shrink: 0;"></span>
+                                <span>Loss Area: <strong>${fmt(loss)} Ha</strong> (${fmtPct(loss)})</span>
+                            </li>
+                            <li style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-block; width: 12px; height: 12px; background-color: #5C756B; border-radius: 50%; flex-shrink: 0;"></span>
+                                <span>Stable Area: <strong>${fmt(stable)} Ha</strong> (${fmtPct(stable)})</span>
+                            </li>
+                        </ul>
+                        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85;">
+                            Total Area Klasifikasi ${fmt(totalArea)} Ha
+                        </div>
+                    `;
+                }
             }
         })
         .catch(err => console.warn('[GeoVista] Ringkasan CSV:', err));
@@ -671,6 +1114,143 @@ function initMap() {
         if (window.geovistaInitBounds) map.fitBounds(window.geovistaInitBounds, { padding: [40, 40] });
         else map.setView([-6.55, 106.8], 10);
     });
+
+    // ===== RESET LAYER BUTTON =====
+    const btnResetLayer = document.getElementById('btnResetLayer');
+    if (btnResetLayer) {
+        btnResetLayer.addEventListener('click', () => {
+            map.closePopup();
+
+            // Clear kecamatan highlight
+            if (highlightedKecamatanLayer) {
+                map.removeLayer(highlightedKecamatanLayer);
+                highlightedKecamatanLayer = null;
+            }
+
+            // Clear search box
+            const srch = document.getElementById('kecamatan-search');
+            const sugg = document.getElementById('search-suggestions');
+            if (srch) srch.value = '';
+            if (sugg) sugg.style.display = 'none';
+
+            // Basemap reset
+            const bmOsm = document.getElementById('bm-osm');
+            if (bmOsm) {
+                bmOsm.checked = true;
+                map.removeLayer(activeBasemap);
+                activeBasemap = osmStandard;
+                map.addLayer(activeBasemap);
+            }
+
+            // Checkboxes reset
+            if (chkAdmin) {
+                chkAdmin.checked = true;
+                if (!map.hasLayer(batasAdminGroup)) map.addLayer(batasAdminGroup);
+            }
+            if (chk2024) { chk2024.checked = true; toggleLayer('target2024', true); }
+            if (chk2025) { chk2025.checked = true; toggleLayer('target2025', true); }
+            if (chkGain) { chkGain.checked = false; toggleLayer('gain', false); }
+            if (chkLoss) { chkLoss.checked = false; toggleLayer('loss', false); }
+
+            focusedLayerKey = null;
+            applyLegendFocus();
+
+            // Reset view to Kabupaten Bogor
+            if (window.geovistaInitBounds) map.fitBounds(window.geovistaInitBounds, { padding: [40, 40] });
+            else map.setView([-6.55, 106.8], 10);
+
+            updateActiveStats();
+            updateActiveBadge();
+        });
+    }
+
+    // ===== SEARCH KECAMATAN =====
+    const searchInput = document.getElementById('kecamatan-search');
+    const suggestionsDropdown = document.getElementById('search-suggestions');
+
+    if (searchInput && suggestionsDropdown) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            suggestionsDropdown.innerHTML = '';
+            if (!query) { suggestionsDropdown.style.display = 'none'; return; }
+
+            // Use GeoJSON-built index, fallback to empty
+            const source = kecamatanNameIndex.length > 0 ? kecamatanNameIndex : [];
+            const matches = source.filter(n => n.toLowerCase().includes(query)).slice(0, 8);
+            if (matches.length === 0) { suggestionsDropdown.style.display = 'none'; return; }
+
+            suggestionsDropdown.style.display = 'block';
+            matches.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'search-suggestion-item';
+                div.textContent = m;
+                div.addEventListener('click', () => {
+                    searchInput.value = m;
+                    suggestionsDropdown.style.display = 'none';
+                    selectKecamatan(m);
+                });
+                suggestionsDropdown.appendChild(div);
+            });
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const first = suggestionsDropdown.querySelector('.search-suggestion-item');
+                if (first) first.click();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionsDropdown.contains(e.target)) {
+                suggestionsDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    function selectKecamatan(name) {
+        if (!kecamatanGeoJSON) return;
+
+        // Find GeoJSON feature by name
+        const feature = kecamatanGeoJSON.features.find(f => extractKecamatanName(f.properties) === name);
+        if (!feature) return;
+
+        // Remove previous highlight
+        if (highlightedKecamatanLayer) {
+            map.removeLayer(highlightedKecamatanLayer);
+            highlightedKecamatanLayer = null;
+        }
+
+        // Create new highlight
+        highlightedKecamatanLayer = L.geoJSON(feature, {
+            style: {
+                color: '#FFD600',
+                weight: 3,
+                fillColor: '#FFD600',
+                fillOpacity: 0.10,
+                dashArray: null
+            }
+        }).addTo(map);
+
+        // Zoom to bounds with padding
+        const tempLayer = L.geoJSON(feature);
+        const bounds = tempLayer.getBounds();
+        map.fitBounds(bounds, { padding: [30, 30] });
+
+        // Auto open popup at center
+        const center = bounds.getCenter();
+        const html = buildCustomPopup(feature, 'admin', center);
+
+        setTimeout(() => {
+            L.popup({ maxWidth: 280 })
+                .setLatLng(center)
+                .setContent(html)
+                .openOn(map);
+        }, 400);
+    }
+
+    // ===== ACTIVE STATS & BADGE ENGINE =====
+    function updateActiveStats() {}
+    function updateActiveBadge() {}
 
     // Store global references
     window.geovistaMap    = map;
@@ -748,97 +1328,108 @@ function loadGroundTruthCSV() {
         });
 }
 
-function renderGroundTruthSummary({ total, byClass, byYear, byClassYear, classLabel, bands }) {
+function renderGroundTruthSummary() {
     const el = document.getElementById('gt-summary-content');
     if (!el) return;
 
-    const years = Object.keys(byYear).sort();
-    const classes = Object.keys(byClass).sort();
-
-    // Build class breakdown HTML
-    const classRows = classes.map(c => {
-        const label = classLabel[c] || `Kelas ${c}`;
-        const count = byClass[c] || 0;
-        const pct   = ((count / total) * 100).toFixed(1);
-        return `
-            <div class="gt-class-row">
-                <div class="gt-class-label">
-                    <span class="gt-class-dot" style="background:${c === '1' ? '#4CAF50' : '#EF5350'};"></span>
-                    ${label}
-                </div>
-                <div class="gt-class-bar-wrap">
-                    <div class="gt-class-bar" style="width:${pct}%;background:${c === '1' ? '#4CAF50' : '#EF5350'};"></div>
-                </div>
-                <div class="gt-class-count"><strong>${count}</strong> <span class="gt-pct">(${pct}%)</span></div>
-            </div>`;
-    }).join('');
-
-    // Build year breakdown HTML
-    const yearRows = years.map(y => {
-        const count = byYear[y] || 0;
-        const pct   = ((count / total) * 100).toFixed(1);
-        const t1    = byClassYear[`1_${y}`] || 0;
-        const t0    = byClassYear[`0_${y}`] || 0;
-        return `
-            <div class="gt-year-block">
-                <div class="gt-year-title"><i class="fas fa-calendar-alt"></i> Tahun ${y}</div>
-                <div class="gt-year-stats">
-                    <span><strong>${count}</strong> titik total</span>
-                    <span class="gt-sep">|</span>
-                    <span style="color:#4CAF50;"><i class="fas fa-check-circle"></i> Target: <strong>${t1}</strong></span>
-                    <span class="gt-sep">|</span>
-                    <span style="color:#EF5350;"><i class="fas fa-times-circle"></i> Non-Target: <strong>${t0}</strong></span>
-                </div>
-            </div>`;
-    }).join('');
-
-    // Band badges
-    const bandBadges = bands.map(b => `<span class="badge ${['NDVI','NDWI','NDBI','NDMI'].includes(b.toUpperCase()) ? 'badge-accent' : ''}">${b.toUpperCase()}</span>`).join('');
-
     el.innerHTML = `
         <div class="gt-summary-grid">
-
             <div class="gt-stat-card">
                 <div class="gt-stat-icon"><i class="fas fa-map-pin"></i></div>
-                <div class="gt-stat-value">${total.toLocaleString('id-ID')}</div>
-                <div class="gt-stat-label">Total Titik Ground Truth</div>
+                <div class="gt-stat-value">300</div>
+                <div class="gt-stat-label">Total Ground Truth</div>
             </div>
 
             <div class="gt-stat-card">
                 <div class="gt-stat-icon"><i class="fas fa-calendar-check"></i></div>
-                <div class="gt-stat-value">${years.length}</div>
-                <div class="gt-stat-label">Tahun Data (${years.join(', ')})</div>
+                <div class="gt-stat-value">2024–2025</div>
+                <div class="gt-stat-label">Periode Data</div>
             </div>
 
             <div class="gt-stat-card">
                 <div class="gt-stat-icon"><i class="fas fa-tags"></i></div>
-                <div class="gt-stat-value">${classes.length}</div>
-                <div class="gt-stat-label">Kelas Klasifikasi</div>
+                <div class="gt-stat-value">2 Kelas</div>
+                <div class="gt-stat-label">Jumlah Kelas</div>
             </div>
 
             <div class="gt-stat-card">
-                <div class="gt-stat-icon"><i class="fas fa-layer-group"></i></div>
-                <div class="gt-stat-value">${bands.length}</div>
-                <div class="gt-stat-label">Fitur Spektral &amp; Indeks</div>
+                <div class="gt-stat-icon"><i class="fas fa-flask"></i></div>
+                <div class="gt-stat-value">210 / 90</div>
+                <div class="gt-stat-label">Training / Testing Data</div>
             </div>
-
         </div>
 
         <div class="gt-section-title"><i class="fas fa-chart-bar"></i> Distribusi Kelas</div>
-        <div class="gt-class-breakdown">${classRows}</div>
+        <div class="gt-class-breakdown">
+            <div class="gt-class-row">
+                <div class="gt-class-label">
+                    <span class="gt-class-dot" style="background:#4CAF50;"></span>
+                    Vegetasi
+                </div>
+                <div class="gt-class-bar-wrap">
+                    <div class="gt-class-bar" style="width:50%;background:#4CAF50;"></div>
+                </div>
+                <div class="gt-class-count"><strong>150 titik</strong> <span class="gt-pct">(50%)</span></div>
+            </div>
+            <div class="gt-class-row">
+                <div class="gt-class-label">
+                    <span class="gt-class-dot" style="background:#EF5350;"></span>
+                    Non-Vegetasi
+                </div>
+                <div class="gt-class-bar-wrap">
+                    <div class="gt-class-bar" style="width:50%;background:#EF5350;"></div>
+                </div>
+                <div class="gt-class-count"><strong>150 titik</strong> <span class="gt-pct">(50%)</span></div>
+            </div>
+        </div>
 
         <div class="gt-section-title"><i class="fas fa-calendar-alt"></i> Distribusi per Tahun</div>
-        <div class="gt-year-breakdown">${yearRows}</div>
+        <div class="gt-year-breakdown">
+            <div class="gt-year-block" style="background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 16px;">
+                <div class="gt-year-title" style="font-size: 1rem; font-weight: 700; color: #F4C542; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-calendar-alt"></i> Tahun 2024
+                </div>
+                <ul style="padding: 0; margin: 0; list-style: none; font-size: 0.85rem; color: #FFFFFF; line-height: 1.8;">
+                    <li style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span>Total Titik:</span>
+                        <strong>150</strong>
+                    </li>
+                    <li style="display: flex; justify-content: space-between; margin-bottom: 6px; color:#4CAF50;">
+                        <span><i class="fas fa-check-circle"></i> Vegetasi:</span>
+                        <strong>75</strong>
+                    </li>
+                    <li style="display: flex; justify-content: space-between; color:#EF5350;">
+                        <span><i class="fas fa-times-circle"></i> Non-Vegetasi:</span>
+                        <strong>75</strong>
+                    </li>
+                </ul>
+            </div>
 
-        <div class="gt-section-title"><i class="fas fa-satellite-dish"></i> Fitur Spektral &amp; Indeks yang Digunakan</div>
-        <div class="feature-badges" style="padding:12px 0 4px;">${bandBadges}</div>
+            <div class="gt-year-block" style="background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 16px;">
+                <div class="gt-year-title" style="font-size: 1rem; font-weight: 700; color: #F4C542; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-calendar-alt"></i> Tahun 2025
+                </div>
+                <ul style="padding: 0; margin: 0; list-style: none; font-size: 0.85rem; color: #FFFFFF; line-height: 1.8;">
+                    <li style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span>Total Titik:</span>
+                        <strong>150</strong>
+                    </li>
+                    <li style="display: flex; justify-content: space-between; margin-bottom: 6px; color:#4CAF50;">
+                        <span><i class="fas fa-check-circle"></i> Vegetasi:</span>
+                        <strong>75</strong>
+                    </li>
+                    <li style="display: flex; justify-content: space-between; color:#EF5350;">
+                        <span><i class="fas fa-times-circle"></i> Non-Vegetasi:</span>
+                        <strong>75</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
     `;
 }
 
 function renderGroundTruthFallback() {
-    const el = document.getElementById('gt-summary-content');
-    if (!el) return;
-    el.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px;">Data ground truth tidak dapat dimuat. Pastikan file <code>Bogor_Veg_Master_300pts_FIXED.csv</code> tersedia di folder <code>assets/data/</code>.</p>`;
+    renderGroundTruthSummary();
 }
 // ==============================
 // 9. ANIMASI COUNTER METRIK
@@ -879,3 +1470,184 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+// ===== KECAMATAN CHANGE LOADER AND CHARTS =====
+function loadKecamatanChangeJSON() {
+    fetch('assets/data/kecamatan_change.json')
+        .then(res => {
+            if (!res.ok) throw new Error('Gagal memuat kecamatan_change.json');
+            return res.json();
+        })
+        .then(data => {
+            renderKecamatanChartsAndCards(data);
+        })
+        .catch(err => {
+            console.warn('[GeoVista] loadKecamatanChangeJSON:', err.message);
+        });
+}
+
+function renderKecamatanChartsAndCards(data) {
+    if (!data || !Array.isArray(data)) return;
+
+    // Filter, sort, and process data
+    // Calculate total change (gain + loss) and net change for each kecamatan
+    const processed = data.map(item => {
+        const gain = parseFloat(item.gain_ha || 0);
+        const loss = parseFloat(item.loss_ha || 0);
+        const net = gain - loss;
+        const totalVolume = gain + loss;
+        return {
+            name: item.kecamatan,
+            gain,
+            loss,
+            net,
+            totalVolume
+        };
+    });
+
+    // 1. Sort by totalVolume descending to get "Perubahan Terbesar" for chart
+    const top10Volume = [...processed]
+        .sort((a, b) => b.totalVolume - a.totalVolume)
+        .slice(0, 10);
+
+    // 2. Sort by gain descending to get Top 5 Gain
+    const top5Gain = [...processed]
+        .sort((a, b) => b.gain - a.gain)
+        .slice(0, 5);
+
+    // 3. Sort by loss descending to get Top 5 Loss
+    const top5Loss = [...processed]
+        .sort((a, b) => b.loss - a.loss)
+        .slice(0, 5);
+
+    // Populate Top 5 Gain List in UI
+    const gainListEl = document.getElementById('top-gain-list');
+    if (gainListEl) {
+        gainListEl.innerHTML = '';
+        const medals = ['1.', '2.', '3.', '4.', '5.'];
+        top5Gain.forEach((item, idx) => {
+            const li = document.createElement('li');
+            li.innerHTML = `${medals[idx]} <span class="name">${item.name}</span> <span class="value">+${item.gain.toLocaleString('id-ID', {maximumFractionDigits: 2})} Ha</span>`;
+            gainListEl.appendChild(li);
+        });
+    }
+
+    // Populate Top 5 Loss List in UI
+    const lossListEl = document.getElementById('top-loss-list');
+    if (lossListEl) {
+        lossListEl.innerHTML = '';
+        const medals = ['1.', '2.', '3.', '4.', '5.'];
+        top5Loss.forEach((item, idx) => {
+            const li = document.createElement('li');
+            li.innerHTML = `${medals[idx]} <span class="name">${item.name}</span> <span class="value" style="color: #FF5252;">-${item.loss.toLocaleString('id-ID', {maximumFractionDigits: 2})} Ha</span>`;
+            lossListEl.appendChild(li);
+        });
+    }
+
+    // Populate Mini KPIs
+    // Top Gain name
+    const topGainKec = top5Gain[0] ? `${top5Gain[0].name} (+${top5Gain[0].gain.toLocaleString('id-ID', {maximumFractionDigits: 0})} Ha)` : '-';
+    const topGainEl = document.getElementById('kpi-top-gain');
+    if (topGainEl) topGainEl.innerText = topGainKec;
+
+    // Top Loss name
+    const topLossKec = top5Loss[0] ? `${top5Loss[0].name} (-${top5Loss[0].loss.toLocaleString('id-ID', {maximumFractionDigits: 0})} Ha)` : '-';
+    const topLossEl = document.getElementById('kpi-top-loss');
+    if (topLossEl) topLossEl.innerText = topLossKec;
+
+    // Total Kecamatan Berubah (with positive gain or loss)
+    const activeKecs = processed.filter(item => item.gain > 0.01 || item.loss > 0.01).length;
+    const totalKecEl = document.getElementById('kpi-total-kec');
+    if (totalKecEl) totalKecEl.innerText = `${activeKecs} Kecamatan`;
+
+    // Persentase Area Berubah
+    // Total gain + loss area over total area (298838 Ha)
+    const totalChangedArea = processed.reduce((acc, curr) => acc + curr.totalVolume, 0);
+    const pctChangedArea = (totalChangedArea / 298838) * 100;
+    const pctChangeEl = document.getElementById('kpi-pct-change');
+    if (pctChangeEl) pctChangeEl.innerText = `${pctChangedArea.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}%`;
+
+    // 4. Render Kecamatan Chart (Horizontal Grouped Bar Chart)
+    const kecCanvas = document.getElementById('kecamatanChart');
+    if (kecCanvas) {
+        const labels = top10Volume.map(item => item.name);
+        const gainData = top10Volume.map(item => item.gain);
+        const lossData = top10Volume.map(item => item.loss);
+
+        new Chart(kecCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Gain Area (Ha)',
+                        data: gainData,
+                        backgroundColor: '#2E7D32',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Loss Area (Ha)',
+                        data: lossData,
+                        backgroundColor: '#D32F2F',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#ffffff',
+                            font: { family: 'Poppins', size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(18, 60, 32, 0.95)',
+                        titleFont: { family: 'Poppins', size: 12, weight: 'bold' },
+                        bodyFont: { family: 'Poppins', size: 11 },
+                        padding: 10,
+                        cornerRadius: 6
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#ffffff',
+                            font: { family: 'Poppins', size: 10 }
+                        },
+                        grid: { color: 'rgba(255,255,255,0.08)' }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#ffffff',
+                            font: { family: 'Poppins', size: 10, weight: 'bold' }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ===== SCROLL REVEAL FUNCTION =====
+function initScrollReveal() {
+    const revealEls = document.querySelectorAll('.scroll-reveal');
+    if (revealEls.length === 0) return;
+
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(el => revealObserver.observe(el));
+}
+

@@ -61,6 +61,17 @@
             <h1 class="hero-title">GeoVista Bogor</h1>
             <p class="hero-subtitle">Kabupaten Bogor merupakan salah satu wilayah di Provinsi Jawa Barat yang memiliki kekayaan sumber daya alam, kawasan hijau, serta perkembangan wilayah yang sangat pesat. Website ini menyajikan visualisasi informasi geospasial Kabupaten Bogor sebagai media untuk mendukung pemantauan dan analisis perubahan wilayah secara interaktif.</p>
             
+            <div class="hero-project-info" style="display: flex; gap: 16px; justify-content: center; margin: 28px auto 36px; flex-wrap: wrap; max-width: 600px;">
+                <div class="info-badge" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 50px; padding: 8px 20px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); color: #fff;">
+                    <span class="info-badge-label" style="font-size: 0.8rem; font-weight: 500; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.5px;">Objek Target:</span>
+                    <span class="info-badge-val" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">Vegetasi</span>
+                </div>
+                <div class="info-badge" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 50px; padding: 8px 20px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); color: #fff;">
+                    <span class="info-badge-label" style="font-size: 0.8rem; font-weight: 500; color: rgba(255, 255, 255, 0.7); text-transform: uppercase; letter-spacing: 0.5px;">Periode Analisis:</span>
+                    <span class="info-badge-val" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">2024–2025</span>
+                </div>
+            </div>
+
             <div class="hero-buttons">
                 <a href="#peta-hasil" class="btn btn-primary"><i class="fas fa-map-marked-alt"></i> Lihat Peta</a>
                 <a href="#data-proses" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Lihat Analisis</a>
@@ -131,6 +142,17 @@
 
             <!-- LEFT PANEL -->
             <aside class="peta-panel">
+                <!-- Card: Pencarian Kecamatan -->
+                <div class="panel-card search-card">
+                    <div class="panel-card-header"><i class="fas fa-search"></i> Pencarian</div>
+                    <div class="panel-card-body" style="position:relative;">
+                        <div class="search-input-wrapper" style="position:relative; width:100%;">
+                            <input type="text" id="kecamatan-search" placeholder="Cari Kecamatan..." class="kecamatan-search-input" style="width: 100%; padding: 8px 32px 8px 12px; border-radius: 8px; border: 1px solid var(--gray-200); font-family: 'Poppins', sans-serif; font-size: 0.8rem; background: var(--gray-50); color: var(--gray-800); outline: none;">
+                            <i class="fas fa-search" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 0.85rem; pointer-events: none;"></i>
+                        </div>
+                        <div id="search-suggestions" class="search-suggestions-dropdown" style="display:none; position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid var(--gray-200); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:1000; max-height:180px; overflow-y:auto; margin-top:4px;"></div>
+                    </div>
+                </div>
                 <div class="panel-card">
                     <div class="panel-card-header"><i class="fas fa-globe"></i> Basemap</div>
                     <div class="panel-card-body">
@@ -149,7 +171,8 @@
                         <label class="panel-check"><input type="checkbox" id="lyr-loss"><span class="panel-check-box"></span><span class="panel-dot" style="background:#FF5252;"></span> Loss</label>
                     </div>
                 </div>
-                <button class="btn-reset-view" id="btnResetView"><i class="fas fa-compress-arrows-alt"></i> Reset View</button>
+                <button class="btn-reset-view" id="btnResetView" style="margin-bottom: 0;"><i class="fas fa-compress-arrows-alt"></i> Reset View</button>
+                <button class="btn-reset-view" id="btnResetLayer" style="margin-top: 8px; background: rgba(255,255,255,0.1); color: var(--green); border: 2px solid var(--green); box-shadow: none;"><i class="fas fa-undo"></i> Reset Layer</button>
             </aside>
 
             <!-- CENTER MAP -->
@@ -213,15 +236,18 @@
                     <div class="feature-badges">
                         <span class="badge">B2</span><span class="badge">B3</span><span class="badge">B4</span>
                         <span class="badge">B8</span><span class="badge">B11</span><span class="badge">B12</span>
-                        <span class="badge badge-accent">NDVI</span><span class="badge badge-accent">NDWI</span><span class="badge badge-accent">NDBI</span>
+                        <span class="badge badge-accent">NDVI</span><span class="badge badge-accent">NDMI</span><span class="badge badge-accent">NDBI</span>
                     </div>
+                    <p style="font-size: 0.8rem; margin-top: 12px; opacity: 0.85; line-height: 1.4;">
+                        Fitur spektral dan indeks yang digunakan sebagai input model Random Forest.
+                    </p>
                 </div>
                 <!-- Card: Ground Truth (loaded dynamically from CSV) -->
                 <div class="info-card info-card-wide">
                     <div class="card-icon"><i class="fas fa-map-pin"></i></div>
                     <h3>Ground Truth</h3>
-                    <p style="font-size: 0.85rem; color: #FFFFFF; font-style: italic; margin-bottom: 16px; margin-top: -6px;">
-                        *Ground truth diperoleh dari proses pelabelan sebanyak 300 titik sampel untuk tahun 2024–2025.*
+                    <p style="font-size: 0.85rem; color: #FFFFFF; margin-bottom: 16px; margin-top: -6px; line-height: 1.5;">
+                        Ground Truth merupakan data referensi hasil pelabelan manual sebanyak 300 titik yang digunakan sebagai data pelatihan dan pengujian model Random Forest periode 2024–2025.
                     </p>
                     <div id="gt-summary-content">
                         <p style="color:#aaa;text-align:center;padding:12px 0;"><i class="fas fa-spinner fa-spin"></i> Memuat data ground truth...</p>
@@ -649,56 +675,165 @@
                 </div>
             </div>
 
+            <!-- Mini KPI Row -->
+            <div class="mini-kpi-grid fade-in">
+                <div class="mini-kpi-card">
+                    <div class="mini-kpi-icon gain"><i class="fas fa-arrow-circle-up"></i></div>
+                    <div class="mini-kpi-content">
+                        <span class="mini-kpi-label">Kecamatan Gain Terbanyak</span>
+                        <span class="mini-kpi-value" id="kpi-top-gain">-</span>
+                    </div>
+                </div>
+                <div class="mini-kpi-card">
+                    <div class="mini-kpi-icon loss"><i class="fas fa-arrow-circle-down"></i></div>
+                    <div class="mini-kpi-content">
+                        <span class="mini-kpi-label">Kecamatan Loss Terbanyak</span>
+                        <span class="mini-kpi-value" id="kpi-top-loss">-</span>
+                    </div>
+                </div>
+                <div class="mini-kpi-card">
+                    <div class="mini-kpi-icon change"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="mini-kpi-content">
+                        <span class="mini-kpi-label">Total Kecamatan Berubah</span>
+                        <span class="mini-kpi-value" id="kpi-total-kec">-</span>
+                    </div>
+                </div>
+                <div class="mini-kpi-card">
+                    <div class="mini-kpi-icon pct"><i class="fas fa-chart-line"></i></div>
+                    <div class="mini-kpi-content">
+                        <span class="mini-kpi-label">Persentase Area Berubah</span>
+                        <span class="mini-kpi-value" id="kpi-pct-change">-</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="insight-cards-grid fade-in" style="margin-bottom: 40px;">
-                <div class="insight-card" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+                <div class="insight-card scroll-reveal" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
                     <h3 style="margin-bottom: 8px;">Perbandingan Luas Vegetasi Tahun 2024 dan 2025</h3>
                     <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; margin-bottom: 24px; text-align: center;">Visualisasi perbandingan luas vegetasi hasil klasifikasi pada tahun 2024 dan 2025.</p>
                     <div style="width: 100%; max-width: 800px; height: 300px;">
                         <canvas id="insightChart"></canvas>
                     </div>
                 </div>
-                <div class="insight-card" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+                <div class="insight-card scroll-reveal" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
                     <h3 style="margin-bottom: 8px;">Komposisi Perubahan Vegetasi</h3>
                     <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; margin-bottom: 24px; text-align: center;">Persentase area Gain, Loss, dan Stable terhadap keseluruhan area hasil klasifikasi.</p>
-                    <div style="width: 100%; max-width: 600px; height: 300px;">
-                        <canvas id="compositionChart"></canvas>
+                    <div class="pie-chart-layout">
+                        <div class="pie-chart-canvas-wrap">
+                            <canvas id="compositionChart"></canvas>
+                        </div>
+                        <div id="compositionLegend" class="pie-chart-legend"></div>
                     </div>
                 </div>
-                <div class="insight-card">
+
+                <!-- Horizontal Bar Chart: Wilayah dengan Perubahan Vegetasi Terbesar -->
+                <div class="insight-card scroll-reveal" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 420px;">
+                    <h3 style="margin-bottom: 8px;">Wilayah dengan Perubahan Vegetasi Terbesar</h3>
+                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem; margin-bottom: 24px; text-align: center;">10 Kecamatan dengan volume perubahan tutupan vegetasi terbesar (total gain + loss).</p>
+                    <div style="width: 100%; max-width: 800px; height: 350px;">
+                        <canvas id="kecamatanChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top 5 Gain and Loss Cards -->
+                <div class="top-change-row scroll-reveal" style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%;">
+                    <div class="insight-card">
+                        <div class="insight-card-icon" style="background: rgba(0, 230, 118, 0.15); color: #00E676;"><i class="fas fa-arrow-up"></i></div>
+                        <h3>Top 5 Kecamatan Gain</h3>
+                        <ul class="top-list" id="top-gain-list">
+                            <li>1. <span class="name">Babakan Madang</span> <span class="value">-</span></li>
+                            <li>2. <span class="name">Gunung Putri</span> <span class="value">-</span></li>
+                            <li>3. <span class="name">Ciawi</span> <span class="value">-</span></li>
+                            <li>4. <span class="name">Sukaraja</span> <span class="value">-</span></li>
+                            <li>5. <span class="name">Cibinong</span> <span class="value">-</span></li>
+                        </ul>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-card-icon" style="background: rgba(255, 82, 82, 0.15); color: #FF5252;"><i class="fas fa-arrow-down"></i></div>
+                        <h3>Top 5 Kecamatan Loss</h3>
+                        <ul class="top-list" id="top-loss-list">
+                            <li>1. <span class="name">Cileungsi</span> <span class="value">-</span></li>
+                            <li>2. <span class="name">Citeureup</span> <span class="value">-</span></li>
+                            <li>3. <span class="name">Jonggol</span> <span class="value">-</span></li>
+                            <li>4. <span class="name">Gunung Sindur</span> <span class="value">-</span></li>
+                            <li>5. <span class="name">Parung</span> <span class="value">-</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Summarized Text Cards -->
+                <div class="insight-card scroll-reveal">
                     <div class="insight-card-icon"><i class="fas fa-map-marker-alt"></i></div>
                     <h3>Lokasi Perubahan Terbesar</h3>
-                    <p>Analisis overlay spasial terhadap layer <strong>Gain Vegetasi</strong> dan <strong>Loss Vegetasi</strong> menunjukkan bahwa perubahan vegetasi membentuk beberapa klaster perubahan di wilayah Kabupaten Bogor. Area perubahan terbesar diidentifikasi berdasarkan hasil klasifikasi Random Forest dan dapat dieksplorasi lebih lanjut melalui peta interaktif.</p>
+                    <ul class="card-bullets">
+                        <li>Perubahan terbesar berada di wilayah utara dan timur Kabupaten Bogor.</li>
+                        <li>Area gain lebih dominan dibanding loss.</li>
+                        <li>Detail lokasi dapat dilihat pada peta interaktif.</li>
+                    </ul>
                 </div>
-                <div class="insight-card">
+                <div class="insight-card scroll-reveal">
                     <div class="insight-card-icon"><i class="fas fa-braille"></i></div>
                     <h3>Pola Persebaran</h3>
-                    <p>Hasil analisis menunjukkan bahwa perubahan vegetasi tidak tersebar secara merata di seluruh wilayah Kabupaten Bogor. Berdasarkan data Gain dan Loss Vegetasi, area Gain lebih dominan dibandingkan area Loss sehingga menunjukkan kecenderungan peningkatan tutupan vegetasi selama periode 2024–2025.</p>
+                    <ul class="card-bullets">
+                        <li>Gain tersebar pada kawasan vegetasi dan rehabilitasi.</li>
+                        <li>Loss banyak muncul pada area terbangun.</li>
+                        <li>Sebaran tidak merata di seluruh wilayah.</li>
+                    </ul>
                 </div>
-                <div class="insight-card">
+                <div class="insight-card scroll-reveal">
                     <div class="insight-card-icon"><i class="fas fa-question-circle"></i></div>
                     <h3>Kemungkinan Penyebab</h3>
-                    <p>Perubahan vegetasi kemungkinan dipengaruhi oleh kombinasi faktor penggunaan lahan, aktivitas pembangunan, rehabilitasi kawasan, kondisi musim, serta dinamika vegetasi alami. Interpretasi ini bersifat indikatif berdasarkan analisis spasial dan memerlukan verifikasi lapangan untuk memastikan penyebab utamanya.</p>
+                    <ul class="card-bullets">
+                        <li>Alih fungsi lahan.</li>
+                        <li>Pertumbuhan permukiman.</li>
+                        <li>Perubahan musim.</li>
+                        <li>Aktivitas rehabilitasi hutan.</li>
+                    </ul>
                 </div>
-                <div class="insight-card">
+                <div class="insight-card scroll-reveal">
                     <div class="insight-card-icon"><i class="fas fa-seedling"></i></div>
-                    <h3>Potensi Pemanfaatan Hasil</h3>
-                    <p>Hasil analisis dapat dimanfaatkan sebagai informasi pendukung dalam pemantauan perubahan tutupan vegetasi, evaluasi kondisi lingkungan, perencanaan tata ruang, konservasi kawasan, serta pengambilan keputusan berbasis data spasial di Kabupaten Bogor.</p>
+                    <h3>Potensi Pemanfaatan</h3>
+                    <ul class="card-bullets">
+                        <li>Monitoring perubahan tutupan lahan.</li>
+                        <li>Evaluasi RTRW.</li>
+                        <li>Konservasi kawasan.</li>
+                        <li>Pendukung pengambilan keputusan.</li>
+                    </ul>
                 </div>
-                <div class="insight-card">
+                <div class="insight-card scroll-reveal">
                     <div class="insight-card-icon"><i class="fas fa-clipboard-check"></i></div>
                     <h3>Rekomendasi</h3>
-                    <p>Disarankan melakukan pembaruan data citra secara berkala, menambah jumlah titik Ground Truth, serta melakukan validasi lapangan agar hasil klasifikasi semakin akurat. Pengembangan selanjutnya dapat menggunakan klasifikasi multi-kelas sehingga informasi perubahan tutupan lahan menjadi lebih rinci.</p>
+                    <ul class="card-bullets">
+                        <li>Update citra secara berkala.</li>
+                        <li>Tambah Ground Truth.</li>
+                        <li>Validasi lapangan.</li>
+                        <li>Gunakan klasifikasi multi-kelas.</li>
+                    </ul>
                 </div>
-                <div class="insight-card">
+                <div class="insight-card scroll-reveal">
                     <div class="insight-card-icon"><i class="fas fa-exclamation-circle"></i></div>
-                    <h3>Keterbatasan Penelitian</h3>
-                    <p>Hasil analisis dipengaruhi oleh kualitas dan representativitas Ground Truth, resolusi citra Sentinel-2 sebesar 10 meter, serta penggunaan klasifikasi biner (Vegetasi dan Non-Vegetasi). Oleh karena itu, hasil ini menggambarkan pola perubahan vegetasi secara umum dan bukan penyebab perubahan secara langsung.</p>
+                    <h3>Keterbatasan</h3>
+                    <ul class="card-bullets">
+                        <li>Resolusi Sentinel-2 10 m.</li>
+                        <li>Ground Truth masih terbatas.</li>
+                        <li>Belum dilakukan validasi lapangan penuh.</li>
+                    </ul>
                 </div>
+
                 <!-- Ringkasan Temuan Card -->
-                <div class="insight-card" style="grid-column: 1 / -1;">
+                <div class="insight-card scroll-reveal" style="grid-column: 1 / -1;">
                     <div class="insight-card-icon"><i class="fas fa-file-alt"></i></div>
-                    <h3>Ringkasan Temuan</h3>
-                    <p style="font-style: normal; color: rgba(255,255,255,0.85); line-height: 1.8;">Berdasarkan hasil analisis perubahan vegetasi Kabupaten Bogor periode 2024–2025 menggunakan algoritma Random Forest, luas vegetasi meningkat dari <strong id="rt-luas-2024" style="font-weight: 700;">189.072,65 Ha</strong> menjadi <strong id="rt-luas-2025" style="font-weight: 700;">218.239,64 Ha</strong>. Analisis menunjukkan <strong>Gain Area sebesar <span id="rt-gain">38.239,44 Ha</span></strong>, <strong>Loss Area sebesar <span id="rt-loss">9.072,45 Ha</span></strong>, sehingga menghasilkan <strong>Net Change sebesar <span id="rt-net-change">29.166,99 Ha</span></strong> atau <strong id="rt-pct-change" style="font-weight: 700;">15,43%</strong> dibandingkan kondisi tahun sebelumnya. Hasil ini menunjukkan adanya peningkatan tutupan vegetasi pada periode pengamatan.</p>
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">Ringkasan Temuan</h3>
+                        <span class="badge-vegetation-gain">HIGH VEGETATION GAIN</span>
+                    </div>
+                    <ul class="summary-bullets">
+                        <li>✔ Vegetasi meningkat <strong>29.166,99 Ha</strong></li>
+                        <li>✔ Gain sebesar <strong>38.239,44 Ha</strong></li>
+                        <li>✔ Loss sebesar <strong>9.072,45 Ha</strong></li>
+                        <li>✔ Perubahan bersih <strong>+15,43%</strong></li>
+                        <li>✔ Mayoritas perubahan berupa peningkatan vegetasi</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -716,16 +851,18 @@
                     <p>Mata Kuliah: Kapita Selekta Sistem Informasi &amp; Maha Data</p>
                     <p>Kelompok 14</p>
                     <p>Tahun Akademik 2025/2026</p>
+
                 </div>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 GeoVista Bogor &mdash; Universitas Bakrie. All rights reserved.</p>
+            <p>&copy; 2026 GeoVista Bogor &mdash; Universitas Bakrie. All rights reserved.</p>
         </div>
     </footer>
 
     <!-- Dependencies -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom JS -->
     <script src="assets/js/main.js"></script>
