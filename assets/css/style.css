@@ -425,18 +425,21 @@ img { max-width: 100%; height: auto; }
 
 @media (max-width: 992px) {
     .flow-box {
-        width: 105px;
-        height: 105px;
+        height: 110px;
         padding: 12px 10px;
         gap: 8px;
+        max-width: none;
+        min-width: 0;
     }
     .flow-icon-wrap { width: 38px; height: 38px; font-size: 1.1rem; }
     .flow-text { font-size: 0.75rem; }
-    .flow-diagram-container { gap: 8px; }
-}
-
-@media (max-width: 768px) {
-    .flow-diagram-container { gap: 12px; }
+    .flow-diagram-container { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); 
+        gap: 12px; 
+        width: 100%; 
+    }
+    .flow-arrow { display: none !important; }
 }
 
 /* ==============================
