@@ -64,7 +64,7 @@ Analisis perubahan tutupan vegetasi Kabupaten Bogor menggunakan citra Sentinel-2
 ### Machine Learning
 - Random Forest Classifier
 - 100 Trees
-- Random Seed 42
+- Random Seed 84
 
 ### WebGIS
 - HTML5
