@@ -16,7 +16,7 @@ Website ini menyediakan peta interaktif, informasi proses pengolahan data, evalu
 
 ## Anggota Kelompok
 
-| No | Nama | NIM 
+| No | Nama | NIM  |
 |----|------------------------------|
 | 1 | Aulia Febriyanti | 1232002014 |
 | 2 | Desta Rahayu | 1232002054 |
