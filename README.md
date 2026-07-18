@@ -16,13 +16,13 @@ Website ini menyediakan peta interaktif, informasi proses pengolahan data, evalu
 
 ## Anggota Kelompok
 
-| No | Nama |
+| No | Nama | NIM 
 |----|------------------------------|
-| 1 | Aulia Febriyanti |
-| 2 | Desta Rahayu |
-| 3 | Erina Nayla Syakira Salsabila |
-| 4 | Mawar Suwendi |
-| 5 | Reino Rachmatullah |
+| 1 | Aulia Febriyanti | 1232002014 |
+| 2 | Desta Rahayu | 1232002054 |
+| 3 | Erina Nayla Syakira Salsabila | 1232002024 |
+| 4 | Mawar Suwendi | 1242002031 |
+| 5 | Reino Rachmatullah | 1232002043 |
 
 ---
 
