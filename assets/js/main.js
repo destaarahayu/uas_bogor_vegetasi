@@ -491,7 +491,7 @@ function initMap() {
                     <span style="font-weight: 600; color: #222;">${luasFormatted}</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 120px 10px 1fr; gap: 4px; margin-bottom: 5px;">
-                    <span style="font-weight: 500; color: #777;">Persentase terhadap luas wilayah (%)</span>
+                    <span style="font-weight: 500; color: #777;">${(type === 'gain' || type === 'loss') ? 'Persentase Perubahan terhadap Luas Wilayah (%)' : 'Persentase terhadap luas wilayah (%)'}</span>
                     <span style="color: #777; font-weight: 500;">:</span>
                     <span style="font-weight: 600; color: #222;">${pctFormatted}</span>
                 </div>
